@@ -67,8 +67,8 @@ const applicantFormsPaths = {
   '/applicant-forms/create': {
     post: {
       tags: ['Applicant Forms'],
-      summary: 'Create applicant form',
-      description: 'Create a new applicant form record',
+      summary: 'Create applicant form (public, pakai token undangan)',
+      description: 'Endpoint publik yang diakses pelamar dari halaman applicant-form. Bukan pakai token admin/HR, melainkan token undangan (JWT) dari url applicant-form, dikirim via header Authorization: Bearer <token>. Token divalidasi sama seperti GET /applicant-invitations/verify/{token} (signature, expired, is_completed). Setelah berhasil, undangan otomatis ditandai completed sehingga token/url tidak bisa dipakai ulang.',
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
@@ -91,6 +91,22 @@ const applicantFormsPaths = {
                   message: { type: 'string', example: 'Data applicant form berhasil dibuat' }
                 }
               }
+            }
+          }
+        },
+        401: {
+          description: 'Token tidak valid / tidak disertakan',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+            }
+          }
+        },
+        410: {
+          description: 'Token sudah expired atau form sudah pernah diisi (completed)',
+          content: {
+            'application/json': {
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
             }
           }
         }

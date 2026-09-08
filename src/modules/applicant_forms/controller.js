@@ -1,4 +1,5 @@
 const service = require('./service')
+const invitationService = require('../applicant_invitations/service')
 const { successResponse, errorResponse } = require('../../utils/response')
 
 const getList = async (req, res) => {
@@ -23,6 +24,12 @@ const getById = async (req, res) => {
 const create = async (req, res) => {
   try {
     const data = await service.createApplicantForm(req.body, req.user)
+
+    // Tandai undangan sebagai completed supaya token/url tidak bisa dipakai ulang
+    if (req.applicantFormToken) {
+      await invitationService.completeInvitation(req.applicantFormToken, data.id)
+    }
+
     return successResponse(res, data, 'Data applicant form berhasil dibuat', 201)
   } catch (error) {
     return errorResponse(res, error?.message || error, error?.statusCode || 500)

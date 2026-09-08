@@ -91,6 +91,11 @@ const sendInvitationEmail = async (id) => {
   }
 
   const applicantFormUrl = buildApplicantFormUrl(invitation.token)
+  const expiresAtFormatted = new Intl.DateTimeFormat('id-ID', {
+    timeZone: 'Asia/Jakarta',
+    dateStyle: 'long',
+    timeStyle: 'short'
+  }).format(new Date(invitation.token_expires_at))
 
   const result = await Mail.init()
     .to(invitation.email)
@@ -100,7 +105,8 @@ const sendInvitationEmail = async (id) => {
         full_name: invitation.full_name,
         email: invitation.email,
         no_mobile: invitation.no_mobile,
-        applicant_form_url: applicantFormUrl
+        applicant_form_url: applicantFormUrl,
+        expires_at: `${expiresAtFormatted} WIB`
       }
     })
     .send()
