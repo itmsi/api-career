@@ -1,0 +1,49 @@
+# Dependencies (installed fresh inside the image)
+node_modules/
+
+# Version control
+.git/
+.gitignore
+
+# Environment variables (use env_file / -e at runtime instead)
+.env
+.env.*
+!environment.example
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Uploads / runtime storage
+uploads/*
+!uploads/.gitkeep
+storages/*
+!storages/.gitkeep
+
+# Tests & coverage
+test/
+coverage/
+.nyc_output/
+
+# Docs & meta files (not needed at runtime)
+docs/
+*.md
+LICENSE
+CHANGELOG.md
+
+# IDE / OS files
+.vscode/
+.idea/
+.DS_Store
+*.swp
+
+# CI/CD configs (not needed inside the image)
+Jenkinsfile
+bitbucket-pipelines.yml
+docker-compose*.yml
+Dockerfile*
+
+# Misc
+npm-debug.log*
+*.log
+.eslintcache
