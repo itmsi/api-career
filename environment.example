@@ -207,6 +207,15 @@ API_BASE_URL=http://localhost:3000/api/v1
 FRONTEND_URL=http://localhost:3000
 
 # ===========================================
+# Applicant Form Invitation Token
+# ===========================================
+# Secret untuk sign token akses applicant-form (fallback ke JWT_SECRET jika kosong)
+APPLICANT_FORM_TOKEN_SECRET=
+APPLICANT_FORM_TOKEN_EXPIRES_IN=14d
+# Base URL halaman applicant-form (token akan di-append sebagai path terakhir)
+APPLICANT_FORM_URL=https://career.motorsights.com/applicant-form
+
+# ===========================================
 # Localization Configuration
 # ===========================================
 TIMEZONE=Asia/Jakarta

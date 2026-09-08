@@ -22,6 +22,10 @@ routing.use(`${API_TAG}/examples`, exampleModule)
 const applicantFormsModule = require('../../modules/applicant_forms')
 routing.use(`${API_TAG}/applicant-forms`, applicantFormsModule)
 
+// Applicant Invitations Module (generate & verify applicant-form access token)
+const applicantInvitationsModule = require('../../modules/applicant_invitations')
+routing.use(`${API_TAG}/applicant-invitations`, applicantInvitationsModule)
+
 // Tambahkan routes module Anda di sini
 // Example:
 // const yourModule = require('../../modules/yourModule')

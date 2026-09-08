@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta http-equiv="Content-Type" content="text/html charset=UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Undangan Pengisian Applicant Form</title>
+    <style>
+        * {
+            font-size: 14px;
+            font-family: Arial, Helvetica, sans-serif;
+            line-height: 1.5;
+        }
+    </style>
+</head>
+
+<body style="max-width: 600px; margin: 30px auto;">
+    <table style="width:100%">
+        <tr>
+            <td align="left" style="font-size: 20px; font-weight: bold;">Career</td>
+        </tr>
+    </table>
+    <p>Halo {{data.full_name}},</p>
+    <p>Terima kasih atas ketertarikan Anda untuk bergabung bersama kami. Silakan lengkapi formulir data pelamar
+        (applicant form) menggunakan data berikut:</p>
+    <p>
+    <table>
+        <tr>
+            <td width="150px">Nama</td>
+            <td>: {{data.full_name}}</td>
+        </tr>
+        <tr>
+            <td>Email</td>
+            <td>: {{data.email}}</td>
+        </tr>
+        <tr>
+            <td>No. Handphone</td>
+            <td>: {{data.no_mobile}}</td>
+        </tr>
+    </table>
+    </p>
+    <p>Silakan klik tombol di bawah ini untuk mengisi applicant form:</p>
+    <p style="text-align: center;">
+        <a href="{{data.applicant_form_url}}" target="_blank"
+            style="display: inline-block; padding: 12px 24px; background-color: #1a73e8; color: #ffffff; text-decoration: none; border-radius: 4px; font-weight: bold;">
+            Isi Applicant Form
+        </a>
+    </p>
+    <p>Atau salin dan buka link berikut pada browser Anda:<br />
+        <a href="{{data.applicant_form_url}}" target="_blank">{{data.applicant_form_url}}</a>
+    </p>
+    <p><strong>Catatan:</strong> Link ini bersifat pribadi, memiliki masa berlaku terbatas, dan hanya dapat digunakan
+        satu kali.</p>
+    <p>Salam hangat,<br />Tim Career</p>
+    <br /><br />
+    <p style="font-size: 12px; color: #999; text-align: center;">Email dikirimkan otomatis melalui sistem, mohon
+        tidak membalas email ini.</p>
+</body>
+
+</html>

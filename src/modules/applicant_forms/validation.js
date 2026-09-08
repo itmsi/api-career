@@ -1,100 +1,63 @@
-const { body, param, query } = require('express-validator');
+const { body, param } = require('express-validator')
 
-/**
- * Validation rules for creating item
- */
+const optionalString = (field, label) =>
+  body(field).optional({ nullable: true }).isString().withMessage(`${label} harus berupa teks`).trim()
+
+const optionalArray = (field, label) =>
+  body(field).optional({ nullable: true }).isArray().withMessage(`${label} harus berupa array`)
+
 const createValidation = [
-  body('full_name').optional().isString().trim(),
-  body('nickname').optional().isString().trim(),
-  body('no_mobile').optional().isString().trim(),
-  body('name_relationship_emergency_contact_number').optional().isString().trim(),
-  body('email').optional().isEmail().withMessage('Format email tidak valid').trim(),
-  body('id_number').optional().isString().trim(),
-  body('position_applied_for').optional().isString().trim(),
-  body('marital_status').optional().isString().trim(),
-  body('height_weight').optional().isString().trim(),
-  body('driver_license').optional().isArray().withMessage('driver_license harus berupa array'),
-  body('address_as_per_id_card').optional().isString(),
-  body('present_address').optional().isString(),
-  body('city').optional().isString().trim(),
-  body('place_date_of_birth').optional().isString().trim(),
-  body('blood_type').optional().isString().trim(),
-  body('tax_identification_number').optional().isString().trim(),
-  body('working_available_date').optional().isDate().withMessage('Format tanggal tidak valid'),
-  body('relogion').optional().isString().trim(),
-  body('tshirt_size').optional().isString().trim(),
-  body('educational_background').optional().isArray().withMessage('educational_background harus berupa array'),
-  body('informal_education_special_qualification').optional().isArray().withMessage('informal_education_special_qualification harus berupa array'),
-  body('family_background').optional().isArray().withMessage('family_background harus berupa array'),
-  body('working_experiences').optional().isArray().withMessage('working_experiences harus berupa array'),
-  body('references_old_company').optional().isArray().withMessage('references_old_company harus berupa array'),
-  body('following_answers').optional().isArray().withMessage('following_answers harus berupa array'),
-];
+  optionalString('full_name', 'full_name'),
+  optionalString('nickname', 'nickname'),
+  optionalString('no_mobile', 'no_mobile'),
+  optionalString('name_relationship_emergency_contact_number', 'name_relationship_emergency_contact_number'),
+  body('email').optional({ nullable: true }).isEmail().withMessage('email harus valid'),
+  optionalString('id_number', 'id_number'),
+  optionalString('position_applied_for', 'position_applied_for'),
+  optionalString('marital_status', 'marital_status'),
+  optionalString('height_weight', 'height_weight'),
+  optionalArray('driver_license', 'driver_license'),
+  optionalString('address_as_per_id_card', 'address_as_per_id_card'),
+  optionalString('present_address', 'present_address'),
+  optionalString('city', 'city'),
+  optionalString('place_date_of_birth', 'place_date_of_birth'),
+  optionalString('blood_type', 'blood_type'),
+  optionalString('tax_identification_number', 'tax_identification_number'),
+  body('working_available_date').optional({ nullable: true }).isDate().withMessage('working_available_date harus berupa tanggal yang valid'),
+  optionalString('relogion', 'relogion'),
+  optionalString('tshirt_size', 'tshirt_size'),
+  optionalArray('educational_background', 'educational_background'),
+  optionalArray('informal_education_special_qualification', 'informal_education_special_qualification'),
+  optionalArray('family_background', 'family_background'),
+  optionalArray('working_experiences', 'working_experiences'),
+  optionalArray('references_old_company', 'references_old_company'),
+  optionalArray('following_answers', 'following_answers'),
+  body('is_delete').optional().isBoolean().withMessage('is_delete harus boolean')
+]
 
-/**
- * Validation rules for updating item
- */
 const updateValidation = [
-  param('id')
-    .notEmpty()
-    .withMessage('ID wajib diisi')
-    .isUUID()
-    .withMessage('Format ID tidak valid'),
-  body('full_name').optional().isString().trim(),
-  body('nickname').optional().isString().trim(),
-  body('no_mobile').optional().isString().trim(),
-  body('name_relationship_emergency_contact_number').optional().isString().trim(),
-  body('email').optional().isEmail().withMessage('Format email tidak valid').trim(),
-  body('id_number').optional().isString().trim(),
-  body('position_applied_for').optional().isString().trim(),
-  body('marital_status').optional().isString().trim(),
-  body('height_weight').optional().isString().trim(),
-  body('driver_license').optional().isArray().withMessage('driver_license harus berupa array'),
-  body('address_as_per_id_card').optional().isString(),
-  body('present_address').optional().isString(),
-  body('city').optional().isString().trim(),
-  body('place_date_of_birth').optional().isString().trim(),
-  body('blood_type').optional().isString().trim(),
-  body('tax_identification_number').optional().isString().trim(),
-  body('working_available_date').optional().isDate().withMessage('Format tanggal tidak valid'),
-  body('relogion').optional().isString().trim(),
-  body('tshirt_size').optional().isString().trim(),
-  body('educational_background').optional().isArray().withMessage('educational_background harus berupa array'),
-  body('informal_education_special_qualification').optional().isArray().withMessage('informal_education_special_qualification harus berupa array'),
-  body('family_background').optional().isArray().withMessage('family_background harus berupa array'),
-  body('working_experiences').optional().isArray().withMessage('working_experiences harus berupa array'),
-  body('references_old_company').optional().isArray().withMessage('references_old_company harus berupa array'),
-  body('following_answers').optional().isArray().withMessage('following_answers harus berupa array'),
-];
+  param('id').notEmpty().withMessage('ID wajib diisi').isUUID().withMessage('Format ID tidak valid'),
+  ...createValidation
+]
 
-/**
- * Validation rules for getting item by ID
- */
 const getByIdValidation = [
-  param('id')
-    .notEmpty()
-    .withMessage('ID wajib diisi')
-    .isUUID()
-    .withMessage('Format ID tidak valid'),
-];
+  param('id').notEmpty().withMessage('ID wajib diisi').isUUID().withMessage('Format ID tidak valid')
+]
 
-/**
- * Validation rules for list with pagination
- */
-const listValidation = [
-  query('page')
-    .optional()
-    .isInt({ min: 1 })
-    .withMessage('Page harus berupa angka positif'),
-  query('limit')
-    .optional()
-    .isInt({ min: 1, max: 100 })
-    .withMessage('Limit harus antara 1-100'),
-];
+const getListValidation = [
+  body('page').optional().isInt({ min: 1 }).withMessage('Page harus berupa angka positif'),
+  body('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit harus antara 1-100'),
+  body('search').optional().isString().withMessage('Search harus berupa teks'),
+  body('sort_by').optional().isIn(['created_at']).withMessage('sort_by tidak valid'),
+  body('sort_order').optional().isIn(['asc', 'desc']).withMessage('sort_order harus asc atau desc'),
+  body('position_applied_for').optional().isString().withMessage('position_applied_for harus berupa teks'),
+  body('city').optional().isString().withMessage('city harus berupa teks'),
+  body('marital_status').optional().isString().withMessage('marital_status harus berupa teks')
+]
 
 module.exports = {
   createValidation,
   updateValidation,
   getByIdValidation,
-  listValidation
-};
+  getListValidation
+}

@@ -1,107 +1,58 @@
-const service = require('./service');
-const { baseResponse, errorResponse } = require('../../utils/response');
+const service = require('./service')
+const { successResponse, errorResponse } = require('../../utils/response')
 
-/**
- * Controller Layer - HTTP Request/Response Handler
- *
- * Layer ini hanya menangani HTTP request dan response.
- * Semua business logic dipindahkan ke service layer.
- */
-
-/**
- * Get all items with pagination
- */
-const getAll = async (req, res) => {
+const getList = async (req, res) => {
   try {
-    const { page = 1, limit = 10 } = req.query;
-    const data = await service.getAllItems(page, limit);
-    return baseResponse(res, { data });
+    const data = await service.getApplicantForms(req.body)
+    return successResponse(res, data)
   } catch (error) {
-    return errorResponse(res, error);
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
   }
-};
+}
 
-/**
- * Get single item by ID
- */
 const getById = async (req, res) => {
   try {
-    const { id } = req.params;
-    const data = await service.getItemById(id);
-    return baseResponse(res, { data });
+    const { id } = req.params
+    const data = await service.getApplicantFormById(id)
+    return successResponse(res, data)
   } catch (error) {
-    return errorResponse(res, error);
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
   }
-};
+}
 
-/**
- * Create new item
- */
 const create = async (req, res) => {
   try {
-    const data = await service.createItem(req.body);
-    return baseResponse(res, {
-      data,
-      message: 'Data berhasil dibuat'
-    }, 201);
+    const data = await service.createApplicantForm(req.body, req.user)
+    return successResponse(res, data, 'Data applicant form berhasil dibuat', 201)
   } catch (error) {
-    return errorResponse(res, error);
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
   }
-};
+}
 
-/**
- * Update existing item
- */
 const update = async (req, res) => {
   try {
-    const { id } = req.params;
-    const data = await service.updateItem(id, req.body);
-    return baseResponse(res, {
-      data,
-      message: 'Data berhasil diupdate'
-    });
+    const { id } = req.params
+    const data = await service.updateApplicantForm(id, req.body, req.user)
+    return successResponse(res, data, 'Data applicant form berhasil diupdate')
   } catch (error) {
-    return errorResponse(res, error);
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
   }
-};
+}
 
-/**
- * Soft delete item
- */
 const remove = async (req, res) => {
   try {
-    const { id } = req.params;
-    const { deleted_by } = req.body;
-    await service.deleteItem(id, deleted_by);
-    return baseResponse(res, {
-      message: 'Data berhasil dihapus'
-    });
+    const { id } = req.params
+    await service.deleteApplicantForm(id, req.user)
+    return successResponse(res, null, 'Data applicant form berhasil dihapus')
   } catch (error) {
-    return errorResponse(res, error);
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
   }
-};
-
-/**
- * Restore soft deleted item
- */
-const restore = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const data = await service.restoreItem(id);
-    return baseResponse(res, {
-      data,
-      message: 'Data berhasil direstore'
-    });
-  } catch (error) {
-    return errorResponse(res, error);
-  }
-};
+}
 
 module.exports = {
-  getAll,
+  getList,
   getById,
   create,
   update,
-  remove,
-  restore
-};
+  remove
+}

@@ -244,6 +244,32 @@ const formatPaginatedResponse = (data, pagination, total) => {
 };
 
 /**
+ * Format response dengan pagination metadata versi sederhana
+ * @param {Array} data - Data hasil query
+ * @param {Object} pagination - Pagination parameters
+ * @param {Number} total - Total records
+ * @returns {Object} Formatted response dengan pagination metadata sederhana
+ */
+const formatSimplePaginatedResponse = (data, pagination, total) => {
+  const safeData = Array.isArray(data) ? data : [];
+  const safePagination = pagination || { page: 1, limit: 10 };
+  const safeTotal = parseInt(total) || 0;
+  const safeLimit = parseInt(safePagination.limit) || 10;
+
+  const totalPages = safeLimit > 0 ? Math.ceil(safeTotal / safeLimit) : 0;
+
+  return {
+    data: safeData,
+    pagination: {
+      page: parseInt(safePagination.page) || 1,
+      limit: safeLimit,
+      total: safeTotal,
+      totalPages,
+    },
+  };
+};
+
+/**
  * Standard error response untuk query parsing
  * @param {Object} res - Express response object
  * @param {String} message - Error message
@@ -282,6 +308,7 @@ module.exports = {
   buildCountQuery,
   applyStandardFilters,
   formatPaginatedResponse,
+  formatSimplePaginatedResponse,
   sendQueryError,
   sendQuerySuccess
 };

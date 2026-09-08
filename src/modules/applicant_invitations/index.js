@@ -3,8 +3,8 @@ const router = express.Router()
 const controller = require('./controller')
 const {
   createValidation,
-  updateValidation,
   getByIdValidation,
+  verifyTokenValidation,
   getListValidation
 } = require('./validation')
 const { verifyToken } = require('../../middlewares')
@@ -26,28 +26,22 @@ router.post(
   controller.create
 )
 
-router.put(
-  '/:id',
-  verifyToken,
-  updateValidation,
-  validateMiddleware,
-  controller.update
-)
-
-router.delete(
-  '/:id',
+router.post(
+  '/:id/resend',
   verifyToken,
   getByIdValidation,
   validateMiddleware,
-  controller.remove
+  controller.resendEmail
 )
 
+/**
+ * Public endpoint - diakses dari halaman applicant-form tanpa auth
+ */
 router.get(
-  '/:id',
-  verifyToken,
-  getByIdValidation,
+  '/verify/:token',
+  verifyTokenValidation,
   validateMiddleware,
-  controller.getById
+  controller.verifyToken
 )
 
 module.exports = router

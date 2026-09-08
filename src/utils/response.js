@@ -15,10 +15,28 @@ const successResponse = (res, data = null, message = 'Success', statusCode = 200
 }
 
 /**
- * Error response
+ * Base response used by module controllers
+ * Usage: baseResponse(res, { data, message }, statusCode)
  */
-const errorResponse = (res, message = 'Error', statusCode = 500, errors = null) => {
+const baseResponse = (res, payload = {}, statusCode = 200) => {
+  const { data = null, message = 'Success' } = payload
   return res.status(statusCode).json({
+    success: true,
+    message,
+    data,
+    timestamp: new Date().toISOString()
+  })
+}
+
+/**
+ * Error response
+ * Accepts either a plain message string or a thrown error object
+ * shaped like `{ message, statusCode }`
+ */
+const errorResponse = (res, error = 'Error', statusCode = 500, errors = null) => {
+  const resolvedStatusCode = (error && error.statusCode) || statusCode
+  const message = (error && error.message) || (typeof error === 'string' ? error : 'Error')
+  return res.status(resolvedStatusCode).json({
     success: false,
     message,
     errors,
@@ -73,6 +91,7 @@ const forbiddenResponse = (res, message = 'Forbidden') => {
 
 module.exports = {
   successResponse,
+  baseResponse,
   errorResponse,
   validationErrorResponse,
   notFoundResponse,

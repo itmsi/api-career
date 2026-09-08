@@ -2,28 +2,33 @@
  * Swagger API Path Definitions for Applicant Forms Module
  */
 
-const applicantFormPaths = {
-  '/applicant-forms': {
-    get: {
+const applicantFormsPaths = {
+  '/applicant-forms/get': {
+    post: {
       tags: ['Applicant Forms'],
-      summary: 'Get all applicant forms',
-      description: 'Retrieve all applicant forms with pagination',
-      parameters: [
-        {
-          name: 'page',
-          in: 'query',
-          description: 'Page number',
-          required: false,
-          schema: { type: 'integer', default: 1 }
-        },
-        {
-          name: 'limit',
-          in: 'query',
-          description: 'Items per page',
-          required: false,
-          schema: { type: 'integer', default: 10 }
+      summary: 'Get applicant forms list',
+      description: 'Retrieve applicant forms with pagination, search, and sorting',
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: {
+              type: 'object',
+              properties: {
+                page: { type: 'integer', example: 1 },
+                limit: { type: 'integer', example: 10 },
+                search: { type: 'string', example: '' },
+                sort_by: { type: 'string', example: 'created_at' },
+                sort_order: { type: 'string', example: 'desc' },
+                position_applied_for: { type: 'string', nullable: true, example: '' },
+                city: { type: 'string', nullable: true, example: '' },
+                marital_status: { type: 'string', nullable: true, example: '' }
+              }
+            }
+          }
         }
-      ],
+      },
       responses: {
         200: {
           description: 'Success',
@@ -36,11 +41,19 @@ const applicantFormPaths = {
                   data: {
                     type: 'object',
                     properties: {
-                      items: {
+                      data: {
                         type: 'array',
                         items: { $ref: '#/components/schemas/ApplicantForm' }
                       },
-                      pagination: { $ref: '#/components/schemas/Pagination' }
+                      pagination: {
+                        type: 'object',
+                        properties: {
+                          page: { type: 'integer' },
+                          limit: { type: 'integer' },
+                          total: { type: 'integer' },
+                          totalPages: { type: 'integer' }
+                        }
+                      }
                     }
                   }
                 }
@@ -49,11 +62,14 @@ const applicantFormPaths = {
           }
         }
       }
-    },
+    }
+  },
+  '/applicant-forms/create': {
     post: {
       tags: ['Applicant Forms'],
-      summary: 'Create new applicant form',
-      description: 'Create a new applicant form entry',
+      summary: 'Create applicant form',
+      description: 'Create a new applicant form record',
+      security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
         content: {
@@ -72,17 +88,9 @@ const applicantFormPaths = {
                 properties: {
                   success: { type: 'boolean', example: true },
                   data: { $ref: '#/components/schemas/ApplicantForm' },
-                  message: { type: 'string', example: 'Data berhasil dibuat' }
+                  message: { type: 'string', example: 'Data applicant form berhasil dibuat' }
                 }
               }
-            }
-          }
-        },
-        400: {
-          description: 'Validation error',
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
             }
           }
         }
@@ -94,6 +102,7 @@ const applicantFormPaths = {
       tags: ['Applicant Forms'],
       summary: 'Get applicant form by ID',
       description: 'Retrieve a single applicant form by ID',
+      security: [{ bearerAuth: [] }],
       parameters: [
         {
           name: 'id',
@@ -117,14 +126,6 @@ const applicantFormPaths = {
               }
             }
           }
-        },
-        404: {
-          description: 'Not found',
-          content: {
-            'application/json': {
-              schema: { $ref: '#/components/schemas/ErrorResponse' }
-            }
-          }
         }
       }
     },
@@ -132,6 +133,7 @@ const applicantFormPaths = {
       tags: ['Applicant Forms'],
       summary: 'Update applicant form',
       description: 'Update an existing applicant form',
+      security: [{ bearerAuth: [] }],
       parameters: [
         {
           name: 'id',
@@ -159,21 +161,19 @@ const applicantFormPaths = {
                 properties: {
                   success: { type: 'boolean', example: true },
                   data: { $ref: '#/components/schemas/ApplicantForm' },
-                  message: { type: 'string', example: 'Data berhasil diupdate' }
+                  message: { type: 'string', example: 'Data applicant form berhasil diupdate' }
                 }
               }
             }
           }
-        },
-        404: {
-          description: 'Not found'
         }
       }
     },
     delete: {
       tags: ['Applicant Forms'],
       summary: 'Delete applicant form',
-      description: 'Soft delete an applicant form (sets deleted_at/is_delete)',
+      description: 'Soft delete an applicant form',
+      security: [{ bearerAuth: [] }],
       parameters: [
         {
           name: 'id',
@@ -183,19 +183,6 @@ const applicantFormPaths = {
           schema: { type: 'string', format: 'uuid' }
         }
       ],
-      requestBody: {
-        required: false,
-        content: {
-          'application/json': {
-            schema: {
-              type: 'object',
-              properties: {
-                deleted_by: { type: 'string', example: 'admin' }
-              }
-            }
-          }
-        }
-      },
       responses: {
         200: {
           description: 'Deleted successfully',
@@ -205,54 +192,15 @@ const applicantFormPaths = {
                 type: 'object',
                 properties: {
                   success: { type: 'boolean', example: true },
-                  message: { type: 'string', example: 'Data berhasil dihapus' }
+                  message: { type: 'string', example: 'Data applicant form berhasil dihapus' }
                 }
               }
             }
           }
-        },
-        404: {
-          description: 'Not found'
-        }
-      }
-    }
-  },
-  '/applicant-forms/{id}/restore': {
-    post: {
-      tags: ['Applicant Forms'],
-      summary: 'Restore deleted applicant form',
-      description: 'Restore a soft-deleted applicant form',
-      parameters: [
-        {
-          name: 'id',
-          in: 'path',
-          required: true,
-          description: 'Applicant Form UUID',
-          schema: { type: 'string', format: 'uuid' }
-        }
-      ],
-      responses: {
-        200: {
-          description: 'Restored successfully',
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                properties: {
-                  success: { type: 'boolean', example: true },
-                  data: { $ref: '#/components/schemas/ApplicantForm' },
-                  message: { type: 'string', example: 'Data berhasil direstore' }
-                }
-              }
-            }
-          }
-        },
-        404: {
-          description: 'Not found'
         }
       }
     }
   }
-};
+}
 
-module.exports = applicantFormPaths;
+module.exports = applicantFormsPaths
