@@ -1,8 +1,8 @@
-const express = require('express')
+const express = require("express");
 // const { verifyToken } = require('../../middlewares')
 
 const routing = express();
-const API_TAG = '/api';
+const API_TAG = "/api/career";
 
 /* RULE
 naming convention endpoint: using plural
@@ -15,16 +15,16 @@ Example:
 */
 
 // Example Module (Template untuk module Anda)
-const exampleModule = require('../../modules/example')
-routing.use(`${API_TAG}/examples`, exampleModule)
+const exampleModule = require("../../modules/example");
+routing.use(`${API_TAG}/examples`, exampleModule);
 
 // Applicant Forms Module
-const applicantFormsModule = require('../../modules/applicant_forms')
-routing.use(`${API_TAG}/applicant-forms`, applicantFormsModule)
+const applicantFormsModule = require("../../modules/applicant_forms");
+routing.use(`${API_TAG}/applicant-forms`, applicantFormsModule);
 
 // Applicant Invitations Module (generate & verify applicant-form access token)
-const applicantInvitationsModule = require('../../modules/applicant_invitations')
-routing.use(`${API_TAG}/applicant-invitations`, applicantInvitationsModule)
+const applicantInvitationsModule = require("../../modules/applicant_invitations");
+routing.use(`${API_TAG}/applicant-invitations`, applicantInvitationsModule);
 
 // Tambahkan routes module Anda di sini
 // Example:
