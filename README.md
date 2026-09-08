@@ -6,21 +6,21 @@ Aplikasi ini berjalan secara default di **port `9585`** (lihat variabel `APP_POR
 
 ## Fitur Utama
 
-- ✅ **Applicant Forms Module**: Module untuk formulir data pelamar kerja (data pribadi, pendidikan, pengalaman kerja, referensi, dll) dengan CRUD, pagination, soft delete, validation
-- ✅ **Example Module Template**: Module contoh lengkap dengan CRUD, pagination, soft delete, validation
-- ✅ **Database**: PostgreSQL dengan Knex.js untuk query builder, migration, dan seeding
-- ✅ **Authentication Ready**: JWT middleware dan utilities (tinggal implement)
-- ✅ **File Upload**: Integrasi dengan AWS S3 dan MinIO untuk object storage
-- ✅ **Email Service**: Template email dengan Nodemailer
-- ✅ **Message Queue**: RabbitMQ untuk async task processing
-- ✅ **API Documentation**: Swagger/OpenAPI 3.0 dengan contoh lengkap
-- ✅ **Security**: Rate limiting, CORS, input validation, XSS protection
-- ✅ **Monitoring**: Prometheus metrics dan comprehensive logging
-- ✅ **Internationalization**: Multi-language support dengan i18n
-- ✅ **Docker Support**: Docker & Docker Compose untuk development dan production
-- ✅ **CI/CD**: Jenkins & Bitbucket Pipelines configuration
+- **Applicant Forms Module**: Module untuk formulir data pelamar kerja (data pribadi, pendidikan, pengalaman kerja, referensi, dll) dengan CRUD, pagination, soft delete, validation
+- **Example Module Template**: Module contoh lengkap dengan CRUD, pagination, soft delete, validation
+- **Database**: PostgreSQL dengan Knex.js untuk query builder, migration, dan seeding
+- **Authentication Ready**: JWT middleware dan utilities (tinggal implement)
+- **File Upload**: Integrasi dengan AWS S3 dan MinIO untuk object storage
+- **Email Service**: Template email dengan Nodemailer
+- **Message Queue**: RabbitMQ untuk async task processing
+- **API Documentation**: Swagger/OpenAPI 3.0 dengan contoh lengkap
+- **Security**: Rate limiting, CORS, input validation, XSS protection
+- **Monitoring**: Prometheus metrics dan comprehensive logging
+- **Internationalization**: Multi-language support dengan i18n
+- **Docker Support**: Docker & Docker Compose untuk development dan production
+- **CI/CD**: Jenkins & Bitbucket Pipelines configuration
 
-## 📋 Prerequisites
+## Prerequisites
 
 Sebelum memulai, pastikan Anda sudah menginstall:
 
@@ -188,7 +188,7 @@ Akses dokumentasi API di `http://localhost:9585/documentation`
 
 ## Cara Membuat Module Baru
 
-> *** Tip:** Gunakan module `example` sebagai template! Copy dan customize sesuai kebutuhan.
+> **\* Tip:** Gunakan module `example` sebagai template! Copy dan customize sesuai kebutuhan.
 
 ### Cara Cepat (Recommended)
 
@@ -197,7 +197,7 @@ Akses dokumentasi API di `http://localhost:9585/documentation`
 cp -r src/modules/example src/modules/products
 
 # Edit files di src/modules/products:
-# - Ganti "example" dengan "product"  
+# - Ganti "example" dengan "product"
 # - Ganti "examples" dengan "products"
 # - Customize fields sesuai kebutuhan
 ```
@@ -223,8 +223,8 @@ src/modules/namaModule/
 #### Contoh `handler.js`:
 
 ```javascript
-const repository = require('./postgre_repository');
-const { baseResponse, errorResponse } = require('../../utils/response');
+const repository = require("./postgre_repository");
+const { baseResponse, errorResponse } = require("../../utils/response");
 
 const getAll = async (req, res) => {
   try {
@@ -239,11 +239,11 @@ const getById = async (req, res) => {
   try {
     const { id } = req.params;
     const data = await repository.findById(id);
-    
+
     if (!data) {
-      return errorResponse(res, { message: 'Data not found' }, 404);
+      return errorResponse(res, { message: "Data not found" }, 404);
     }
-    
+
     return baseResponse(res, { data });
   } catch (error) {
     return errorResponse(res, error);
@@ -273,7 +273,7 @@ const remove = async (req, res) => {
   try {
     const { id } = req.params;
     await repository.remove(id);
-    return baseResponse(res, { message: 'Data deleted successfully' });
+    return baseResponse(res, { message: "Data deleted successfully" });
   } catch (error) {
     return errorResponse(res, error);
   }
@@ -284,28 +284,26 @@ module.exports = {
   getById,
   create,
   update,
-  remove
+  remove,
 };
 ```
 
 #### Contoh `postgre_repository.js`:
 
 ```javascript
-const db = require('../../config/database');
+const db = require("../../config/database");
 
-const TABLE_NAME = 'your_table_name';
+const TABLE_NAME = "your_table_name";
 
 const findAll = async () => {
   return await db(TABLE_NAME)
-    .select('*')
+    .select("*")
     .where({ deleted_at: null })
-    .orderBy('created_at', 'desc');
+    .orderBy("created_at", "desc");
 };
 
 const findById = async (id) => {
-  return await db(TABLE_NAME)
-    .where({ id, deleted_at: null })
-    .first();
+  return await db(TABLE_NAME).where({ id, deleted_at: null }).first();
 };
 
 const create = async (data) => {
@@ -313,9 +311,9 @@ const create = async (data) => {
     .insert({
       ...data,
       created_at: db.fn.now(),
-      updated_at: db.fn.now()
+      updated_at: db.fn.now(),
     })
-    .returning('*');
+    .returning("*");
   return result;
 };
 
@@ -324,19 +322,17 @@ const update = async (id, data) => {
     .where({ id })
     .update({
       ...data,
-      updated_at: db.fn.now()
+      updated_at: db.fn.now(),
     })
-    .returning('*');
+    .returning("*");
   return result;
 };
 
 const remove = async (id) => {
   // Soft delete
-  return await db(TABLE_NAME)
-    .where({ id })
-    .update({
-      deleted_at: db.fn.now()
-    });
+  return await db(TABLE_NAME).where({ id }).update({
+    deleted_at: db.fn.now(),
+  });
 };
 
 module.exports = {
@@ -344,61 +340,73 @@ module.exports = {
   findById,
   create,
   update,
-  remove
+  remove,
 };
 ```
 
 #### Contoh `validation.js`:
 
 ```javascript
-const { body, param, query } = require('express-validator');
+const { body, param, query } = require("express-validator");
 
 const createValidation = [
-  body('name')
+  body("name")
     .notEmpty()
-    .withMessage('Name is required')
+    .withMessage("Name is required")
     .isLength({ min: 3 })
-    .withMessage('Name must be at least 3 characters'),
-  body('email')
+    .withMessage("Name must be at least 3 characters"),
+  body("email")
     .notEmpty()
-    .withMessage('Email is required')
+    .withMessage("Email is required")
     .isEmail()
-    .withMessage('Email must be valid'),
+    .withMessage("Email must be valid"),
 ];
 
 const updateValidation = [
-  param('id')
+  param("id")
     .notEmpty()
-    .withMessage('ID is required')
+    .withMessage("ID is required")
     .isUUID()
-    .withMessage('ID must be valid UUID'),
-  body('name')
+    .withMessage("ID must be valid UUID"),
+  body("name")
     .optional()
     .isLength({ min: 3 })
-    .withMessage('Name must be at least 3 characters'),
+    .withMessage("Name must be at least 3 characters"),
 ];
 
 module.exports = {
   createValidation,
-  updateValidation
+  updateValidation,
 };
 ```
 
 #### Contoh `index.js`:
 
 ```javascript
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const handler = require('./handler');
-const { createValidation, updateValidation } = require('./validation');
-const { verifyToken } = require('../../middlewares');
-const { handleValidationErrors } = require('../../middlewares/validation');
+const handler = require("./handler");
+const { createValidation, updateValidation } = require("./validation");
+const { verifyToken } = require("../../middlewares");
+const { handleValidationErrors } = require("../../middlewares/validation");
 
-router.get('/', verifyToken, handler.getAll);
-router.get('/:id', verifyToken, handler.getById);
-router.post('/', verifyToken, createValidation, handleValidationErrors, handler.create);
-router.put('/:id', verifyToken, updateValidation, handleValidationErrors, handler.update);
-router.delete('/:id', verifyToken, handler.remove);
+router.get("/", verifyToken, handler.getAll);
+router.get("/:id", verifyToken, handler.getById);
+router.post(
+  "/",
+  verifyToken,
+  createValidation,
+  handleValidationErrors,
+  handler.create,
+);
+router.put(
+  "/:id",
+  verifyToken,
+  updateValidation,
+  handleValidationErrors,
+  handler.update,
+);
+router.delete("/:id", verifyToken, handler.remove);
 
 module.exports = router;
 ```
@@ -408,7 +416,7 @@ module.exports = router;
 Edit file `src/routes/V1/index.js`:
 
 ```javascript
-const yourModule = require('../../modules/yourModule');
+const yourModule = require("../../modules/yourModule");
 
 // ... existing code ...
 
@@ -426,20 +434,20 @@ npm run migrate:make create_your_table
 Edit file migration di `src/repository/postgres/migrations/`:
 
 ```javascript
-exports.up = function(knex) {
-  return knex.schema.createTable('your_table_name', (table) => {
-    table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
-    table.string('name').notNullable();
-    table.string('email').unique();
-    table.text('description');
-    table.timestamp('created_at').defaultTo(knex.fn.now());
-    table.timestamp('updated_at').defaultTo(knex.fn.now());
-    table.timestamp('deleted_at').nullable();
+exports.up = function (knex) {
+  return knex.schema.createTable("your_table_name", (table) => {
+    table.uuid("id").primary().defaultTo(knex.raw("uuid_generate_v4()"));
+    table.string("name").notNullable();
+    table.string("email").unique();
+    table.text("description");
+    table.timestamp("created_at").defaultTo(knex.fn.now());
+    table.timestamp("updated_at").defaultTo(knex.fn.now());
+    table.timestamp("deleted_at").nullable();
   });
 };
 
-exports.down = function(knex) {
-  return knex.schema.dropTable('your_table_name');
+exports.down = function (knex) {
+  return knex.schema.dropTable("your_table_name");
 };
 ```
 
@@ -449,21 +457,24 @@ Jalankan migration:
 npm run migrate
 ```
 
-## 📖 Applicant Forms API Endpoints
+## Applicant Forms API Endpoints
 
 Module `applicant_forms` menyediakan endpoint untuk mengelola formulir data pelamar kerja (data pribadi, pendidikan, pengalaman kerja, referensi, dll):
 
 ### Get All Applicant Forms
+
 ```bash
 GET /api/applicant-forms?page=1&limit=10
 ```
 
 ### Get Applicant Form by ID
+
 ```bash
 GET /api/applicant-forms/:id
 ```
 
 ### Create Applicant Form
+
 ```bash
 POST /api/applicant-forms
 Content-Type: application/json
@@ -487,6 +498,7 @@ Content-Type: application/json
 ```
 
 ### Update Applicant Form
+
 ```bash
 PUT /api/applicant-forms/:id
 Content-Type: application/json
@@ -497,30 +509,35 @@ Content-Type: application/json
 ```
 
 ### Delete Applicant Form (Soft Delete)
+
 ```bash
 DELETE /api/applicant-forms/:id
 ```
 
 ### Restore Applicant Form
+
 ```bash
 POST /api/applicant-forms/:id/restore
 ```
 
-## 📖 Example API Endpoints
+## Example API Endpoints
 
 Boilerplate ini sudah include module `example` sebagai template dengan endpoints berikut:
 
 ### Get All Examples
+
 ```bash
 GET /api/examples?page=1&limit=10
 ```
 
 ### Get Example by ID
+
 ```bash
 GET /api/examples/:id
 ```
 
 ### Create Example
+
 ```bash
 POST /api/examples
 Content-Type: application/json
@@ -533,6 +550,7 @@ Content-Type: application/json
 ```
 
 ### Update Example
+
 ```bash
 PUT /api/examples/:id
 Content-Type: application/json
@@ -543,36 +561,40 @@ Content-Type: application/json
 ```
 
 ### Delete Example
+
 ```bash
 DELETE /api/examples/:id
 ```
 
 ### Restore Example
+
 ```bash
 POST /api/examples/:id/restore
 ```
 
-> **📚 Full API Documentation:** `http://localhost:9585/documentation`
+> **\* Full API Documentation:** `http://localhost:9585/documentation`
 
-## 🔐 Authentication (Ready to Implement)
+## Authentication (Ready to Implement)
 
 Boilerplate sudah include JWT middleware. Untuk menggunakannya:
 
 ### 1. Uncomment di route:
-```javascript
-const { verifyToken } = require('../../middlewares');
 
-router.get('/', verifyToken, handler.getAll);
+```javascript
+const { verifyToken } = require("../../middlewares");
+
+router.get("/", verifyToken, handler.getAll);
 ```
 
 ### 2. Tambahkan header Authorization:
+
 ```bash
 Authorization: Bearer your-jwt-token
 ```
 
-> **💡 Tip:** Lihat `src/middlewares/token.js` untuk JWT verification logic
+> **\* Tip:** Lihat `src/middlewares/token.js` untuk JWT verification logic
 
-## 📚 API Documentation
+## API Documentation
 
 Dokumentasi API tersedia via Swagger UI. Akses di:
 
@@ -581,10 +603,11 @@ http://localhost:9585/documentation
 ```
 
 Untuk menambahkan dokumentasi API Anda, edit file:
+
 - `src/static/path/yourModule.js` - untuk endpoint paths
 - `src/static/schema/yourModule.js` - untuk schema definitions
 
-## 🐳 Docker
+## Docker
 
 ### Development
 
@@ -598,7 +621,7 @@ docker-compose -f docker-compose.dev.yml up
 docker-compose -f docker-compose.server.yml up -d
 ```
 
-## 📊 Monitoring
+## Monitoring
 
 ### Prometheus Metrics
 
@@ -611,16 +634,17 @@ http://localhost:9585/metrics
 ### Logs
 
 Log tersimpan di folder `logs/`:
+
 - `logs/application/` - Application logs
 - `logs/listener/` - RabbitMQ listener logs
 
-## 🧪 Testing
+## Testing
 
 ```bash
 npm test
 ```
 
-## 🛠️ Available Scripts
+## Available Scripts
 
 - `npm start` - Jalankan server production
 - `npm run dev` - Jalankan server development dengan nodemon
@@ -632,7 +656,7 @@ npm test
 - `npm run consumer` - Jalankan RabbitMQ consumer
 - `npm test` - Jalankan tests
 
-## 📖 Dependencies
+## Dependencies
 
 ### Core
 
@@ -669,32 +693,14 @@ npm test
 - **xss-clean** - XSS protection
 - **express-rate-limit** - Rate limiting
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Silakan buat pull request atau issue untuk saran dan perbaikan.
 
-## 📄 License
+## License
 
 MIT License - lihat file [LICENSE](LICENSE) untuk detail.
 
-## 👨‍💻 Author
-
-**Your Name**
-
-- GitHub: [@your-username](https://github.com/your-username)
-- Email: your-email@example.com
-
-## 🙏 Acknowledgments
-
-Boilerplate ini dibuat dengan menggabungkan best practices dari berbagai sumber dan pengalaman development.
-
-## 📞 Support
-
-Untuk pertanyaan atau dukungan:
-
-- Buat issue di [GitHub Issues](https://github.com/your-username/api-career/issues)
-- Email: your-email@example.com
-
 ---
 
-Made with ❤️ for the developer community
+Made with for the developer community
