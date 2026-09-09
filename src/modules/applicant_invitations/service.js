@@ -13,6 +13,7 @@ const Mail = require('../../utils/mail')
 const TOKEN_SECRET = process.env.APPLICANT_FORM_TOKEN_SECRET || process.env.JWT_SECRET
 const TOKEN_EXPIRES_IN = process.env.APPLICANT_FORM_TOKEN_EXPIRES_IN || '3d'
 const APPLICANT_FORM_URL = process.env.APPLICANT_FORM_URL || 'https://career.motorsights.com/applicant-form'
+const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true'
 
 const getRequesterId = (user) => {
   if (!user) return null
@@ -91,6 +92,11 @@ const sendInvitationEmail = async (id) => {
   }
 
   const applicantFormUrl = buildApplicantFormUrl(invitation.token)
+
+  if (!EMAIL_ENABLED) {
+    return { invitation, applicant_form_url: applicantFormUrl, email_sent: false }
+  }
+
   const expiresAtFormatted = new Intl.DateTimeFormat('id-ID', {
     timeZone: 'Asia/Jakarta',
     dateStyle: 'long',
@@ -115,7 +121,7 @@ const sendInvitationEmail = async (id) => {
     throw { message: `Gagal mengirim email: ${result.message}`, statusCode: 502 }
   }
 
-  return { invitation, applicant_form_url: applicantFormUrl }
+  return { invitation, applicant_form_url: applicantFormUrl, email_sent: true }
 }
 
 /**
