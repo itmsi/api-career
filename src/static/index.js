@@ -18,11 +18,11 @@ const servers = [
     description: "Development server",
   },
   {
-    url: "https://gateway.motorsights.com/api/hrm",
+    url: "https://gateway.motorsights.com/api/career",
     description: "Production server",
   },
   {
-    url: "https://dev-gateway.motorsights.com/api/hrm",
+    url: "https://dev-gateway.motorsights.com/api/career",
     description: "Develop server",
   },
 ];
