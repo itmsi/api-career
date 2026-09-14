@@ -103,6 +103,36 @@ const create = async (data = {}) => {
   return await findById(inserted.id)
 }
 
+// Dipakai saat applicant form di-update dari sisi HR (PUT /applicant-forms/:id) supaya
+// full_name/email/no_mobile di undangan ikut ter-update. full_name/email/no_mobile di
+// tabel ini NOT NULL, jadi hanya field yang dikirim (non-kosong) yang di-update.
+const updateContact = async (id, data = {}) => {
+  const payload = {}
+
+  const normalizedFullName = normalizeNullableValue(data.full_name)
+  const normalizedEmail = normalizeNullableValue(data.email)
+  const normalizedNoMobile = normalizeNullableValue(data.no_mobile)
+
+  if (normalizedFullName !== null) payload.full_name = normalizedFullName
+  if (normalizedEmail !== null) payload.email = normalizedEmail
+  if (normalizedNoMobile !== null) payload.no_mobile = normalizedNoMobile
+
+  if (Object.keys(payload).length === 0) {
+    return await findById(id)
+  }
+
+  payload.updated_by = data.updated_by || null
+  payload.updated_at = pgCore.fn.now()
+
+  const [updated] = await pgCore(TABLE_NAME)
+    .where({ id, deleted_at: null })
+    .update(payload)
+    .returning('id')
+
+  if (!updated?.id) return null
+  return await findById(updated.id)
+}
+
 const markCompleted = async (id, applicantFormId = null) => {
   const [updated] = await pgCore(TABLE_NAME)
     .where({ id, deleted_at: null })
@@ -142,6 +172,7 @@ module.exports = {
   findById,
   findByToken,
   create,
+  updateContact,
   markCompleted,
   remove
 }

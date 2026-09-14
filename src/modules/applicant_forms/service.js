@@ -1,4 +1,8 @@
 const repository = require('./repository')
+const invitationsRepository = require('../applicant_invitations/repository')
+
+const APPLICANT_FORM_URL = process.env.APPLICANT_FORM_URL || 'https://career.motorsights.com/applicant-form'
+const buildApplicantFormUrl = (token) => (token ? `${APPLICANT_FORM_URL}/${token}` : null)
 
 const getRequesterId = (user) => {
   if (!user) return null
@@ -42,15 +46,25 @@ const buildPayload = (payload = {}) => ({
 })
 
 const getApplicantForms = async (params) => {
-  return await repository.findAll(params)
+  const result = await repository.findAll(params)
+  return {
+    ...result,
+    data: result.data.map((item) => ({
+      ...item,
+      applicant_form_url: buildApplicantFormUrl(item.token)
+    }))
+  }
 }
 
 const getApplicantFormById = async (id) => {
-  const data = await repository.findById(id)
+  const data = await repository.findDetailById(id)
   if (!data) {
     throw { message: 'Data applicant form tidak ditemukan', statusCode: 404 }
   }
-  return data
+  return {
+    ...data,
+    applicant_form_url: buildApplicantFormUrl(data.token)
+  }
 }
 
 const createApplicantForm = async (payload, user) => {
@@ -62,25 +76,80 @@ const createApplicantForm = async (payload, user) => {
   })
 }
 
+// :id bisa berupa id undangan (applicant_form_invitations.id) atau id applicant_forms.
+// - Dicek dulu di applicant_form_invitations.id.
+//   - Kalau ketemu dan applicant_form_id-nya sudah terisi -> update applicant_forms yang ada.
+//   - Kalau ketemu tapi applicant_form_id masih kosong -> create applicant_forms baru,
+//     lalu tandai undangan tsb completed & simpan applicant_form_id-nya.
+// - Kalau tidak ketemu di kolom id, dicek lagi di applicant_form_invitations.applicant_form_id
+//   (berarti :id adalah id applicant_forms yang sudah ada) -> update applicant_forms.
+// full_name/email/no_mobile yang dikirim juga dipakai buat sinkronkan data di
+// applicant_form_invitations (kolom full_name/email/no_mobile).
 const updateApplicantForm = async (id, payload, user) => {
-  const existing = await repository.findById(id)
-  if (!existing) {
+  const authorId = getRequesterId(user)
+
+  let invitation = await repository.findInvitationById(id)
+
+  if (!invitation) {
+    invitation = await repository.findInvitationByApplicantFormId(id)
+  }
+
+  if (!invitation) {
     throw { message: 'Data applicant form tidak ditemukan', statusCode: 404 }
   }
-  const authorId = getRequesterId(user)
-  return await repository.update(id, {
+
+  await invitationsRepository.updateContact(invitation.id, {
+    full_name: payload.full_name,
+    email: payload.email,
+    no_mobile: payload.no_mobile,
+    updated_by: authorId
+  })
+
+  if (!invitation.applicant_form_id) {
+    const created = await repository.create({
+      ...buildPayload(payload),
+      created_by: authorId,
+      updated_by: authorId
+    })
+    await invitationsRepository.markCompleted(invitation.id, created.id)
+    return created
+  }
+
+  const existingForm = await repository.findById(invitation.applicant_form_id)
+  if (!existingForm) {
+    throw { message: 'Data applicant form tidak ditemukan', statusCode: 404 }
+  }
+
+  return await repository.update(invitation.applicant_form_id, {
     ...buildPayload(payload),
     updated_by: authorId
   })
 }
 
+// :id bisa berupa id undangan atau id applicant_forms (lihat updateApplicantForm).
+// Soft delete dilakukan ke applicant_form_invitations, dan ke applicant_forms
+// juga kalau form-nya sudah pernah diisi.
 const deleteApplicantForm = async (id, user) => {
-  const existing = await repository.findById(id)
-  if (!existing) {
+  let invitation = await repository.findInvitationById(id)
+
+  if (!invitation) {
+    invitation = await repository.findInvitationByApplicantFormId(id)
+  }
+
+  if (!invitation) {
     throw { message: 'Data applicant form tidak ditemukan', statusCode: 404 }
   }
+
   const authorId = getRequesterId(user)
-  return await repository.remove(id, authorId)
+
+  if (invitation.applicant_form_id) {
+    const existingForm = await repository.findById(invitation.applicant_form_id)
+    if (existingForm) {
+      await repository.remove(invitation.applicant_form_id, authorId)
+    }
+  }
+
+  return await invitationsRepository.remove(invitation.id, authorId)
 }
 
 module.exports = {

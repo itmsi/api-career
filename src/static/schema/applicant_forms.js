@@ -1,4 +1,69 @@
 const applicantFormsSchema = {
+  ApplicantFormListItem: {
+    type: 'object',
+    description: 'Hasil list applicant forms, di-join dari applicant_form_invitations (LEFT JOIN applicant_forms via applicant_form_id, LEFT JOIN gate_sso_employees via applicant_form_invitations.created_by = employee_id) sehingga undangan yang belum diisi tetap muncul.',
+    properties: {
+      id: { type: 'string', format: 'uuid', example: '6f6c4d1d-4b90-41b8-90c5-6d2336f3f2a1', description: 'applicant_form_invitations.applicant_form_id kalau form sudah diisi, kalau belum fallback ke applicant_form_invitations.id' },
+      name: { type: 'string', example: 'John Doe', description: 'Dari applicant_form_invitations.full_name' },
+      email: { type: 'string', example: 'john.doe@example.com', description: 'Dari applicant_form_invitations.email' },
+      no_mobile: { type: 'string', example: '081234567890', description: 'Dari applicant_form_invitations.no_mobile' },
+      token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', description: 'Token akses (JWT) undangan applicant form' },
+      applicant_form_url: { type: 'string', example: 'https://career.motorsights.com/applicant-form/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', description: 'URL applicant form yang dibangun dari token undangan' },
+      token_expires_at: { type: 'string', format: 'date-time' },
+      is_completed: { type: 'boolean', example: false, description: 'true jika pelamar sudah mengisi applicant form' },
+      completed_at: { type: 'string', format: 'date-time', nullable: true },
+      created_at: { type: 'string', format: 'date-time', description: 'Waktu undangan dibuat (applicant_form_invitations.created_at)' },
+      created_by_name: { type: 'string', nullable: true, example: 'Jane Smith', description: 'Nama pembuat undangan, di-resolve dari gate_sso_employees.employee_name via applicant_form_invitations.created_by = employee_id' },
+      position_applied_for: { type: 'string', nullable: true, example: 'Software Engineer' },
+      city: { type: 'string', nullable: true, example: 'Yogyakarta' },
+      working_available_date: { type: 'string', format: 'date', nullable: true, example: '2026-10-01' }
+    }
+  },
+  ApplicantFormDetail: {
+    type: 'object',
+    description: 'Hasil GET /applicant-forms/:id, di-join dari applicant_form_invitations (LEFT JOIN applicant_forms via applicant_form_id, LEFT JOIN gate_sso_employees via applicant_form_invitations.created_by = employee_id). :id bisa berupa applicant_form_id (form sudah diisi) atau id undangan (form belum diisi).',
+    properties: {
+      id: { type: 'string', format: 'uuid', example: '6f6c4d1d-4b90-41b8-90c5-6d2336f3f2a1', description: 'applicant_form_invitations.applicant_form_id kalau form sudah diisi, kalau belum fallback ke applicant_form_invitations.id' },
+      name: { type: 'string', example: 'John Doe', description: 'Dari applicant_form_invitations.full_name' },
+      email: { type: 'string', example: 'john.doe@example.com', description: 'Dari applicant_form_invitations.email' },
+      no_mobile: { type: 'string', example: '081234567890', description: 'Dari applicant_form_invitations.no_mobile' },
+      token: { type: 'string', example: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', description: 'Token akses (JWT) undangan applicant form' },
+      applicant_form_url: { type: 'string', example: 'https://career.motorsights.com/applicant-form/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', description: 'URL applicant form yang dibangun dari token undangan' },
+      token_expires_at: { type: 'string', format: 'date-time' },
+      is_completed: { type: 'boolean', example: false, description: 'true jika pelamar sudah mengisi applicant form' },
+      completed_at: { type: 'string', format: 'date-time', nullable: true },
+      created_at: { type: 'string', format: 'date-time', description: 'Waktu undangan dibuat (applicant_form_invitations.created_at)' },
+      created_by_name: { type: 'string', nullable: true, example: 'Jane Smith', description: 'Nama pembuat undangan, di-resolve dari gate_sso_employees.employee_name via applicant_form_invitations.created_by = employee_id' },
+      nickname: { type: 'string', nullable: true, example: 'Johnny' },
+      name_relationship_emergency_contact_number: { type: 'string', nullable: true, example: 'Jane Doe (Istri) - 081234567891' },
+      id_number: { type: 'string', nullable: true, example: '3271010101900001' },
+      position_applied_for: { type: 'string', nullable: true, example: 'Software Engineer' },
+      marital_status: { type: 'string', nullable: true, example: 'Menikah' },
+      height_weight: { type: 'string', nullable: true, example: '170cm / 65kg' },
+      driver_license: {
+        type: 'array',
+        nullable: true,
+        items: { type: 'object', properties: { name: { type: 'string', example: 'SIM A' } } },
+        example: [{ name: 'SIM A' }, { name: 'SIM B' }]
+      },
+      address_as_per_id_card: { type: 'string', nullable: true, example: 'Jl. Contoh No. 1' },
+      present_address: { type: 'string', nullable: true, example: 'Jl. Contoh No. 2' },
+      city: { type: 'string', nullable: true, example: 'Yogyakarta' },
+      place_date_of_birth: { type: 'string', nullable: true, example: 'Yogyakarta, 01 Januari 1990' },
+      blood_type: { type: 'string', nullable: true, example: 'O' },
+      tax_identification_number: { type: 'string', nullable: true, example: '09.123.456.7-123.000' },
+      working_available_date: { type: 'string', format: 'date', nullable: true, example: '2026-10-01' },
+      relogion: { type: 'string', nullable: true, example: 'Islam' },
+      tshirt_size: { type: 'string', nullable: true, example: 'L' },
+      educational_background: { type: 'array', nullable: true, items: { type: 'object' } },
+      informal_education_special_qualification: { type: 'array', nullable: true, items: { type: 'object' } },
+      family_background: { type: 'array', nullable: true, items: { type: 'object' } },
+      working_experiences: { type: 'array', nullable: true, items: { type: 'object' } },
+      references_old_company: { type: 'array', nullable: true, items: { type: 'object' } },
+      following_answers: { type: 'array', nullable: true, items: { type: 'object' } },
+      is_delete: { type: 'boolean', nullable: true, example: false }
+    }
+  },
   ApplicantForm: {
     type: 'object',
     properties: {
