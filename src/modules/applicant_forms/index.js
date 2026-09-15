@@ -10,6 +10,7 @@ const {
 const { verifyToken } = require('../../middlewares')
 const { validateMiddleware } = require('../../middlewares/validation')
 const { verifyApplicantFormToken } = require('./applicant_token')
+const { applicantFormLimiter } = require('../../middlewares/rate-limiter')
 
 router.post(
   '/get',
@@ -25,6 +26,7 @@ router.post(
  */
 router.post(
   '/create',
+  applicantFormLimiter,
   verifyApplicantFormToken,
   createValidation,
   validateMiddleware,

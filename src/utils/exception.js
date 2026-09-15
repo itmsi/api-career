@@ -65,7 +65,7 @@ const errorHandler = (error, res) => {
     console.log('error sending', err)
   })
   res.status(HTTP.OK).json({
-    status: true,
+    status: false,
     message: lang.__('error.invalid.syntax'),
     data: [],
   })
@@ -73,7 +73,7 @@ const errorHandler = (error, res) => {
 
 const syntaxError = (err, req, res, next) => {
   const result = {
-    status: true,
+    status: false,
     message: `syntax error ${err}`,
     data: []
   }

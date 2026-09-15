@@ -134,7 +134,7 @@ const verifyAccessToken = async (token) => {
   let decoded
 
   try {
-    decoded = jwt.verify(token, TOKEN_SECRET)
+    decoded = jwt.verify(token, TOKEN_SECRET, { algorithms: ['HS256'] })
   } catch (error) {
     if (error.name === 'TokenExpiredError') {
       throw { message: 'Token sudah expired', statusCode: 410, reason: 'expired' }

@@ -28,11 +28,16 @@ const clientForgotPasswordLimiter = rateLimit({ ...rateLimiterConfiguration });
 
 const customerForgotPasswordLimiter = rateLimit({ ...rateLimiterConfiguration });
 
+// Endpoint publik yang hanya dilindungi token undangan (bukan sesi admin/HR),
+// jadi perlu dibatasi tersendiri untuk mencegah brute-force token / flood payload.
+const applicantFormLimiter = rateLimit({ ...rateLimiterConfiguration });
+
 module.exports = {
   adminSigninLimiter,
   customerSigninLimiter,
   conductorSigninLimiter,
   clientSigninLimiter,
   clientForgotPasswordLimiter,
-  customerForgotPasswordLimiter
+  customerForgotPasswordLimiter,
+  applicantFormLimiter
 };

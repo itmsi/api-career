@@ -99,8 +99,20 @@ const create = async (data = {}) => {
     is_delete: false
   }
 
-  const [inserted] = await pgCore(TABLE_NAME).insert(payload).returning('id')
-  return await findById(inserted.id)
+  try {
+    const [inserted] = await pgCore(TABLE_NAME).insert(payload).returning('id')
+    return await findById(inserted.id)
+  } catch (error) {
+    // Kode 23505 = unique_violation. Ditangkap di sini (bukan dicek dulu
+    // baru insert) supaya aman dari race condition kalau ada dua request
+    // datang bersamaan (mis. double-click submit) untuk email yang sama -
+    // constraint di DB (uq_applicant_form_invitations_active_email) yang
+    // jadi sumber kebenaran, bukan pengecekan di level aplikasi.
+    if (error.code === '23505') {
+      throw { message: 'Undangan aktif untuk email ini sudah ada dan belum diselesaikan', statusCode: 409 }
+    }
+    throw error
+  }
 }
 
 // Dipakai saat applicant form di-update dari sisi HR (PUT /applicant-forms/:id) supaya
