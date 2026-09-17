@@ -61,6 +61,8 @@ const applicantFormsSchema = {
       working_experiences: { type: 'array', nullable: true, items: { type: 'object' } },
       references_old_company: { type: 'array', nullable: true, items: { type: 'object' } },
       following_answers: { type: 'array', nullable: true, items: { type: 'object' } },
+      signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Share link Nextcloud dari file signature yang terakhir diupload' },
+      signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
       is_delete: { type: 'boolean', nullable: true, example: false }
     }
   },
@@ -191,6 +193,8 @@ const applicantFormsSchema = {
         },
         example: [{ question: '', answers: '' }]
       },
+      signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Share link Nextcloud dari file signature yang terakhir diupload (dikelola lewat endpoint /applicant-form-signatures)' },
+      signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
       created_at: { type: 'string', format: 'date-time' },
       created_by: { type: 'string', nullable: true },
       updated_at: { type: 'string', format: 'date-time' },
@@ -263,7 +267,9 @@ const applicantFormsSchema = {
         type: 'array',
         nullable: true,
         example: [{ question: '', answers: '' }]
-      }
+      },
+      signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO' },
+      signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' }
     }
   }
 }

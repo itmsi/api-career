@@ -1,0 +1,147 @@
+const { createClient } = require("webdav");
+const axios = require("axios");
+
+const NEXTCLOUD_URL =
+  process.env.NEXTCLOUD_URL || "https://cloud.inlinegroupdc.com";
+const NEXTCLOUD_USERNAME =
+  process.env.NEXTCLOUD_USERNAME || "admin_netsuite_dev";
+const NEXTCLOUD_PASSWORD = process.env.NEXTCLOUD_PASSWORD || "Rubysa179596";
+const NEXTCLOUD_WEBDAV_PATH =
+  process.env.NEXTCLOUD_WEBDAV_PATH || "/remote.php/webdav";
+const NEXTCLOUD_SHARE_API_PATH =
+  process.env.NEXTCLOUD_SHARE_API_PATH ||
+  "/ocs/v1.php/apps/files_sharing/api/v1/shares";
+const NEXTCLOUD_UPLOAD_DIR = process.env.NEXTCLOUD_UPLOAD_DIR || "/HRMS";
+
+const client = createClient(`${NEXTCLOUD_URL}${NEXTCLOUD_WEBDAV_PATH}`, {
+  username: NEXTCLOUD_USERNAME,
+  password: NEXTCLOUD_PASSWORD,
+});
+
+/**
+ * Convert a snake_case/kebab-case/space-separated string into PascalCase,
+ * e.g. "transfer_order" -> "TransferOrder"
+ * @param {string} value
+ * @returns {string}
+ */
+const toPascalCase = (value) => {
+  if (!value) return value;
+  return String(value)
+    .split(/[\s_-]+/)
+    .filter(Boolean)
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+    .join("");
+};
+
+/**
+ * Ensures a directory exists in Nextcloud
+ * @param {string} dirPath Directory path
+ */
+const ensureDirectoryExists = async (dirPath) => {
+  const parts = dirPath.split("/").filter(Boolean);
+  let currentPath = "";
+
+  for (const part of parts) {
+    currentPath += `/${part}`;
+    const exists = await client.exists(currentPath);
+    if (!exists) {
+      await client.createDirectory(currentPath);
+    }
+  }
+};
+
+/**
+ * Move/rename a file within Nextcloud
+ * @param {string} fromPath Current path of the file
+ * @param {string} toPath Destination path
+ */
+const moveFile = async (fromPath, toPath) => {
+  await client.moveFile(fromPath, toPath);
+};
+
+/**
+ * Copy a file within Nextcloud, keeping the source intact
+ * @param {string} fromPath Current path of the file
+ * @param {string} toPath Destination path
+ */
+const copyFile = async (fromPath, toPath) => {
+  await client.copyFile(fromPath, toPath);
+};
+
+/**
+ * Upload a file buffer to Nextcloud, creating the target directory if needed
+ * @param {string} dirPath Directory in Nextcloud to upload into (e.g. "/HRMS/Signature")
+ * @param {string} fileName Name of the file to create
+ * @param {Buffer} buffer File content
+ * @returns {string} Full path of the uploaded file in Nextcloud
+ */
+const uploadFile = async (dirPath, fileName, buffer) => {
+  await ensureDirectoryExists(dirPath);
+  const filePath = `${dirPath}/${fileName}`;
+  await client.putFileContents(filePath, buffer, { overwrite: true });
+  return filePath;
+};
+
+/**
+ * Delete a file from Nextcloud if it exists
+ * @param {string} filePath Path of the file in Nextcloud
+ */
+const deleteFile = async (filePath) => {
+  if (!filePath) return;
+  const exists = await client.exists(filePath);
+  if (exists) {
+    await client.deleteFile(filePath);
+  }
+};
+
+/**
+ * Generate a public share link using Nextcloud OCS API
+ * @param {string} path Path to the file in Nextcloud
+ * @returns {string} Public share URL
+ */
+const generateShareLink = async (path) => {
+  try {
+    const response = await axios.post(
+      `${NEXTCLOUD_URL}${NEXTCLOUD_SHARE_API_PATH}`,
+      {
+        path: path,
+        shareType: 3, // 3 = public link
+        permissions: 1, // 1 = read only
+      },
+      {
+        headers: {
+          "OCS-APIRequest": "true",
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        auth: {
+          username: NEXTCLOUD_USERNAME,
+          password: NEXTCLOUD_PASSWORD,
+        },
+      },
+    );
+
+    if (response.data && response.data.ocs && response.data.ocs.data) {
+      return response.data.ocs.data.url;
+    }
+    throw new Error("Failed to parse share URL from response");
+  } catch (error) {
+    console.error(
+      "Error generating share link:",
+      error.response?.data || error.message,
+    );
+    throw error;
+  }
+};
+
+module.exports = {
+  client,
+  toPascalCase,
+  ensureDirectoryExists,
+  moveFile,
+  copyFile,
+  uploadFile,
+  deleteFile,
+  generateShareLink,
+  NEXTCLOUD_UPLOAD_DIR,
+};

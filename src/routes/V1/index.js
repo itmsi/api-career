@@ -26,6 +26,10 @@ routing.use(`${API_TAG}/applicant-forms`, applicantFormsModule);
 const applicantInvitationsModule = require("../../modules/applicant_invitations");
 routing.use(`${API_TAG}/applicant-invitations`, applicantInvitationsModule);
 
+// Applicant Form Signatures Module (upload signature file ke Nextcloud)
+const applicantFormSignaturesModule = require("../../modules/applicant_form_signatures");
+routing.use(`${API_TAG}/applicant-form-signatures`, applicantFormSignaturesModule);
+
 // Tambahkan routes module Anda di sini
 // Example:
 // const yourModule = require('../../modules/yourModule')

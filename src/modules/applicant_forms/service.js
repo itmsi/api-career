@@ -42,7 +42,9 @@ const buildPayload = (payload = {}) => ({
   family_background: payload.family_background ?? null,
   working_experiences: payload.working_experiences ?? null,
   references_old_company: payload.references_old_company ?? null,
-  following_answers: payload.following_answers ?? null
+  following_answers: payload.following_answers ?? null,
+  signature_link: normalizeOptionalString(payload.signature_link),
+  signature_date: normalizeOptionalString(payload.signature_date)
 })
 
 const getApplicantForms = async (params) => {

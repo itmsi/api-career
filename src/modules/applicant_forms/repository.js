@@ -34,6 +34,8 @@ const SELECT_COLUMNS = [
   'working_experiences',
   'references_old_company',
   'following_answers',
+  'signature_link',
+  'signature_date',
   'created_at',
   'created_by',
   'updated_at',
@@ -279,6 +281,8 @@ const create = async (data = {}) => {
     working_experiences: normalizeJsonValue(data.working_experiences),
     references_old_company: normalizeJsonValue(data.references_old_company),
     following_answers: normalizeJsonValue(data.following_answers),
+    signature_link: normalizeNullableValue(data.signature_link),
+    signature_date: normalizeNullableValue(data.signature_date),
     created_by: data.created_by || null,
     updated_by: data.updated_by || null,
     created_at: pgCore.fn.now(),
@@ -317,6 +321,8 @@ const update = async (id, data = {}) => {
     working_experiences: normalizeJsonValue(data.working_experiences),
     references_old_company: normalizeJsonValue(data.references_old_company),
     following_answers: normalizeJsonValue(data.following_answers),
+    signature_link: normalizeNullableValue(data.signature_link),
+    signature_date: normalizeNullableValue(data.signature_date),
     updated_by: data.updated_by || null,
     updated_at: pgCore.fn.now()
   }
