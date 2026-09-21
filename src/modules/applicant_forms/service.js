@@ -43,6 +43,7 @@ const buildPayload = (payload = {}) => ({
   working_experiences: payload.working_experiences ?? null,
   references_old_company: payload.references_old_company ?? null,
   following_answers: payload.following_answers ?? null,
+  applicant_form_files: payload.applicant_form_files ?? null,
   signature_link: normalizeOptionalString(payload.signature_link),
   signature_date: normalizeOptionalString(payload.signature_date)
 })

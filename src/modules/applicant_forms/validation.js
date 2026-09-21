@@ -105,6 +105,9 @@ const createValidation = [
   arrayOfRecords('following_answers', 'following_answers', [
     'question', 'answers'
   ]),
+  arrayOfRecords('applicant_form_files', 'applicant_form_files', [
+    'file_title', 'file_type', 'file'
+  ]),
   optionalString('signature_link', 'signature_link', { max: MAX_LONG }),
   body('signature_date').optional({ nullable: true }).isDate().withMessage('signature_date harus berupa tanggal yang valid'),
   body('is_delete').optional().isBoolean().withMessage('is_delete harus boolean')
