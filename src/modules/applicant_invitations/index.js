@@ -9,6 +9,7 @@ const {
 } = require('./validation')
 const { verifyToken } = require('../../middlewares')
 const { validateMiddleware } = require('../../middlewares/validation')
+const { applicantFormLimiter } = require('../../middlewares/rate-limiter')
 
 router.post(
   '/get',
@@ -39,6 +40,7 @@ router.post(
  */
 router.get(
   '/verify/:token',
+  applicantFormLimiter,
   verifyTokenValidation,
   validateMiddleware,
   controller.verifyToken

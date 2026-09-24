@@ -3,10 +3,12 @@ const express = require('express')
 require('dotenv').config()
 
 const app = express()
+const cors = require('cors')
 const compress = require('compression')
 const methodOverride = require('method-override')
 const xss = require('xss-clean')
 const morgan = require('morgan')
+const { corsOptions } = require('./utils/cors')
 const {
   notFoundHandler,
   errorHandler,
@@ -30,6 +32,7 @@ if (process.env.RABBITMQ_ENABLED === 'true' && process.env.RABBITMQ_URL && proce
 
 const limit = process.env.JSON_LIMIT || '1gb'
 app.set('trust proxy', 1);
+app.use(cors(corsOptions)) // cross-origin resource sharing
 app.use(compress()) // gzip compression
 app.use(methodOverride()) // lets you use HTTP verbs
 app.use(xss()) // handler xss attack

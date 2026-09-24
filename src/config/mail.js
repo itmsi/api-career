@@ -1,23 +1,24 @@
 module.exports = {
   development: {
-    host: process.env.MAIL_HOST,
-    port: process.env.MAIL_PORT,
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
     auth: {
-      user: process.env.MAIL_USERNAME, // generated ethereal user
-      pass: process.env.MAIL_PASSWORD, // generated ethereal password
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
-    sender: process.env.MAIL_FROM,
-    secureConnection: process?.env?.MAIL_ENCRYPTION ?? true,
+    sender: process.env.EMAIL_FROM,
+    secure: process?.env?.SMTP_SECURE === 'true',
     ignoreTLS: process?.env?.IGNORE_TLS ?? false
   },
   production: {
-    host: process.env.MAIL_HOST,
-    port: process.env.MAIL_PORT,
+    host: process.env.SMTP_HOST,
+    port: process.env.SMTP_PORT,
     auth: {
-      user: process.env.MAIL_USERNAME, // generated ethereal user
-      pass: process.env.MAIL_PASSWORD, // generated ethereal password
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
-    sender: process.env.MAIL_FROM,
+    sender: process.env.EMAIL_FROM,
+    secure: process?.env?.SMTP_SECURE === 'true',
     tls: {
       rejectUnauthorized: false
     }

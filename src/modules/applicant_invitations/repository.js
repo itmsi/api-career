@@ -99,8 +99,50 @@ const create = async (data = {}) => {
     is_delete: false
   }
 
-  const [inserted] = await pgCore(TABLE_NAME).insert(payload).returning('id')
-  return await findById(inserted.id)
+  try {
+    const [inserted] = await pgCore(TABLE_NAME).insert(payload).returning('id')
+    return await findById(inserted.id)
+  } catch (error) {
+    // Kode 23505 = unique_violation. Ditangkap di sini (bukan dicek dulu
+    // baru insert) supaya aman dari race condition kalau ada dua request
+    // datang bersamaan (mis. double-click submit) untuk email yang sama -
+    // constraint di DB (uq_applicant_form_invitations_active_email) yang
+    // jadi sumber kebenaran, bukan pengecekan di level aplikasi.
+    if (error.code === '23505') {
+      throw { message: 'Undangan aktif untuk email ini sudah ada dan belum diselesaikan', statusCode: 409 }
+    }
+    throw error
+  }
+}
+
+// Dipakai saat applicant form di-update dari sisi HR (PUT /applicant-forms/:id) supaya
+// full_name/email/no_mobile di undangan ikut ter-update. full_name/email/no_mobile di
+// tabel ini NOT NULL, jadi hanya field yang dikirim (non-kosong) yang di-update.
+const updateContact = async (id, data = {}) => {
+  const payload = {}
+
+  const normalizedFullName = normalizeNullableValue(data.full_name)
+  const normalizedEmail = normalizeNullableValue(data.email)
+  const normalizedNoMobile = normalizeNullableValue(data.no_mobile)
+
+  if (normalizedFullName !== null) payload.full_name = normalizedFullName
+  if (normalizedEmail !== null) payload.email = normalizedEmail
+  if (normalizedNoMobile !== null) payload.no_mobile = normalizedNoMobile
+
+  if (Object.keys(payload).length === 0) {
+    return await findById(id)
+  }
+
+  payload.updated_by = data.updated_by || null
+  payload.updated_at = pgCore.fn.now()
+
+  const [updated] = await pgCore(TABLE_NAME)
+    .where({ id, deleted_at: null })
+    .update(payload)
+    .returning('id')
+
+  if (!updated?.id) return null
+  return await findById(updated.id)
 }
 
 const markCompleted = async (id, applicantFormId = null) => {
@@ -142,6 +184,7 @@ module.exports = {
   findById,
   findByToken,
   create,
+  updateContact,
   markCompleted,
   remove
 }

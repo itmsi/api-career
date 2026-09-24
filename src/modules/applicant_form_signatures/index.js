@@ -9,8 +9,7 @@ const {
 } = require('./validation')
 const { verifyToken } = require('../../middlewares')
 const { validateMiddleware } = require('../../middlewares/validation')
-const { verifyApplicantFormToken } = require('./applicant_token')
-const { applicantFormLimiter } = require('../../middlewares/rate-limiter')
+const { handleSignatureUpload } = require('./upload')
 
 router.post(
   '/get',
@@ -20,14 +19,10 @@ router.post(
   controller.getList
 )
 
-/**
- * Diakses publik oleh pelamar menggunakan token undangan dari url
- * applicant-form (bukan token admin/HR). Lihat ./applicant_token.js
- */
 router.post(
   '/create',
-  applicantFormLimiter,
-  verifyApplicantFormToken,
+  verifyToken,
+  handleSignatureUpload,
   createValidation,
   validateMiddleware,
   controller.create
@@ -36,6 +31,7 @@ router.post(
 router.put(
   '/:id',
   verifyToken,
+  handleSignatureUpload,
   updateValidation,
   validateMiddleware,
   controller.update
