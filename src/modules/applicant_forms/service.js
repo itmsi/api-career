@@ -1,5 +1,6 @@
 const repository = require('./repository')
 const invitationsRepository = require('../applicant_invitations/repository')
+const { publishMoveFiles } = require('./file_mover')
 
 const APPLICANT_FORM_URL = process.env.APPLICANT_FORM_URL || 'https://career.motorsights.com/applicant-form'
 const buildApplicantFormUrl = (token) => (token ? `${APPLICANT_FORM_URL}/${token}` : null)
@@ -44,6 +45,7 @@ const buildPayload = (payload = {}) => ({
   references_old_company: payload.references_old_company ?? null,
   following_answers: payload.following_answers ?? null,
   applicant_form_files: payload.applicant_form_files ?? null,
+  applicant_form_contents: payload.applicant_form_contents ?? null,
   signature_link: normalizeOptionalString(payload.signature_link),
   signature_date: normalizeOptionalString(payload.signature_date)
 })
@@ -72,11 +74,13 @@ const getApplicantFormById = async (id) => {
 
 const createApplicantForm = async (payload, user) => {
   const authorId = getRequesterId(user)
-  return await repository.create({
+  const created = await repository.create({
     ...buildPayload(payload),
     created_by: authorId,
     updated_by: authorId
   })
+  publishMoveFiles(created)
+  return created
 }
 
 // :id bisa berupa id undangan (applicant_form_invitations.id) atau id applicant_forms.
@@ -115,6 +119,7 @@ const updateApplicantForm = async (id, payload, user) => {
       updated_by: authorId
     })
     await invitationsRepository.markCompleted(invitation.id, created.id)
+    publishMoveFiles(created)
     return created
   }
 
@@ -123,10 +128,12 @@ const updateApplicantForm = async (id, payload, user) => {
     throw { message: 'Data applicant form tidak ditemukan', statusCode: 404 }
   }
 
-  return await repository.update(invitation.applicant_form_id, {
+  const updated = await repository.update(invitation.applicant_form_id, {
     ...buildPayload(payload),
     updated_by: authorId
   })
+  publishMoveFiles(updated)
+  return updated
 }
 
 // :id bisa berupa id undangan atau id applicant_forms (lihat updateApplicantForm).

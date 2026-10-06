@@ -35,6 +35,7 @@ const SELECT_COLUMNS = [
   'references_old_company',
   'following_answers',
   'applicant_form_files',
+  'applicant_form_contents',
   'signature_link',
   'signature_date',
   'created_at',
@@ -283,6 +284,7 @@ const create = async (data = {}) => {
     references_old_company: normalizeJsonValue(data.references_old_company),
     following_answers: normalizeJsonValue(data.following_answers),
     applicant_form_files: normalizeJsonValue(data.applicant_form_files),
+    applicant_form_contents: normalizeJsonValue(data.applicant_form_contents),
     signature_link: normalizeNullableValue(data.signature_link),
     signature_date: normalizeNullableValue(data.signature_date),
     created_by: data.created_by || null,
@@ -324,6 +326,7 @@ const update = async (id, data = {}) => {
     references_old_company: normalizeJsonValue(data.references_old_company),
     following_answers: normalizeJsonValue(data.following_answers),
     applicant_form_files: normalizeJsonValue(data.applicant_form_files),
+    applicant_form_contents: normalizeJsonValue(data.applicant_form_contents),
     signature_link: normalizeNullableValue(data.signature_link),
     signature_date: normalizeNullableValue(data.signature_date),
     updated_by: data.updated_by || null,
@@ -358,6 +361,38 @@ const remove = async (id, deletedBy) => {
     .first()
 }
 
+// Lookup file hasil upload (signature/files/contents) berdasarkan share link-nya,
+// dipakai consumer queue untuk memindahkan file ke folder kandidat di Nextcloud.
+const findSignatureByLink = async (link) => {
+  return await pgCore('applicant_form_signatures')
+    .select('id', 'nextcloud_path')
+    .where({ signature_link: link, deleted_at: null })
+    .first()
+}
+
+const findFileByLink = async (link) => {
+  return await pgCore('applicant_form_files')
+    .select('id', 'nextcloud_path')
+    .where({ file_link: link, deleted_at: null })
+    .first()
+}
+
+const findContentByLink = async (kind, link) => {
+  return await pgCore('applicant_form_contents')
+    .select('id', `nextcloud_path_${kind} as nextcloud_path`)
+    .where({ [`file_link_${kind}`]: link, deleted_at: null })
+    .first()
+}
+
+const updateNextcloudPath = async (tableName, id, column, nextcloudPath) => {
+  return await pgCore(tableName)
+    .where({ id })
+    .update({
+      [column]: nextcloudPath,
+      updated_at: pgCore.fn.now()
+    })
+}
+
 module.exports = {
   findAll,
   findById,
@@ -366,5 +401,9 @@ module.exports = {
   findInvitationByApplicantFormId,
   create,
   update,
-  remove
+  remove,
+  findSignatureByLink,
+  findFileByLink,
+  findContentByLink,
+  updateNextcloudPath
 }

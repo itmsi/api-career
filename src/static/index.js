@@ -29,11 +29,14 @@ const servers = [
 
 // Import schemas
 // Tambahkan schema module Anda di sini
+const commonSchema = require("./schema/common");
 const exampleSchema = require("./schema/example");
 const applicantFormsSchema = require("./schema/applicant_forms");
 const applicantInvitationsSchema = require("./schema/applicant_invitations");
 const applicantFormSignaturesSchema = require("./schema/applicant_form_signatures");
 const applicantFormFilesSchema = require("./schema/applicant_form_files");
+const masterQuestionsSchema = require("./schema/master_questions");
+const applicantFormContentsSchema = require("./schema/applicant_form_contents");
 
 // Import paths
 // Tambahkan path module Anda di sini
@@ -42,23 +45,30 @@ const applicantFormsPaths = require("./path/applicant_forms");
 const applicantInvitationsPaths = require("./path/applicant_invitations");
 const applicantFormSignaturesPaths = require("./path/applicant_form_signatures");
 const applicantFormFilesPaths = require("./path/applicant_form_files");
+const masterQuestionsPaths = require("./path/master_questions");
+const applicantFormContentsPaths = require("./path/applicant_form_contents");
 
 // Combine all schemas
 const schemas = {
-  ...exampleSchema,
+  ...commonSchema,
+  // ...exampleSchema,
   ...applicantFormsSchema,
   ...applicantInvitationsSchema,
   ...applicantFormSignaturesSchema,
   ...applicantFormFilesSchema,
+  ...masterQuestionsSchema,
+  ...applicantFormContentsSchema,
 };
 
 // Combine all paths
 const paths = {
-  ...examplePaths,
+  // ...examplePaths,
   ...applicantFormsPaths,
   ...applicantInvitationsPaths,
   ...applicantFormSignaturesPaths,
   ...applicantFormFilesPaths,
+  ...masterQuestionsPaths,
+  ...applicantFormContentsPaths,
 };
 
 const index = {
