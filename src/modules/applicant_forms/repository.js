@@ -361,6 +361,38 @@ const remove = async (id, deletedBy) => {
     .first()
 }
 
+// Lookup file hasil upload (signature/files/contents) berdasarkan share link-nya,
+// dipakai consumer queue untuk memindahkan file ke folder kandidat di Nextcloud.
+const findSignatureByLink = async (link) => {
+  return await pgCore('applicant_form_signatures')
+    .select('id', 'nextcloud_path')
+    .where({ signature_link: link, deleted_at: null })
+    .first()
+}
+
+const findFileByLink = async (link) => {
+  return await pgCore('applicant_form_files')
+    .select('id', 'nextcloud_path')
+    .where({ file_link: link, deleted_at: null })
+    .first()
+}
+
+const findContentByLink = async (kind, link) => {
+  return await pgCore('applicant_form_contents')
+    .select('id', `nextcloud_path_${kind} as nextcloud_path`)
+    .where({ [`file_link_${kind}`]: link, deleted_at: null })
+    .first()
+}
+
+const updateNextcloudPath = async (tableName, id, column, nextcloudPath) => {
+  return await pgCore(tableName)
+    .where({ id })
+    .update({
+      [column]: nextcloudPath,
+      updated_at: pgCore.fn.now()
+    })
+}
+
 module.exports = {
   findAll,
   findById,
@@ -369,5 +401,9 @@ module.exports = {
   findInvitationByApplicantFormId,
   create,
   update,
-  remove
+  remove,
+  findSignatureByLink,
+  findFileByLink,
+  findContentByLink,
+  updateNextcloudPath
 }

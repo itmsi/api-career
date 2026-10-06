@@ -29,6 +29,7 @@ const servers = [
 
 // Import schemas
 // Tambahkan schema module Anda di sini
+const commonSchema = require("./schema/common");
 const exampleSchema = require("./schema/example");
 const applicantFormsSchema = require("./schema/applicant_forms");
 const applicantInvitationsSchema = require("./schema/applicant_invitations");
@@ -49,6 +50,7 @@ const applicantFormContentsPaths = require("./path/applicant_form_contents");
 
 // Combine all schemas
 const schemas = {
+  ...commonSchema,
   // ...exampleSchema,
   ...applicantFormsSchema,
   ...applicantInvitationsSchema,
