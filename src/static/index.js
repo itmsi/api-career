@@ -35,6 +35,7 @@ const applicantInvitationsSchema = require("./schema/applicant_invitations");
 const applicantFormSignaturesSchema = require("./schema/applicant_form_signatures");
 const applicantFormFilesSchema = require("./schema/applicant_form_files");
 const masterQuestionsSchema = require("./schema/master_questions");
+const applicantFormContentsSchema = require("./schema/applicant_form_contents");
 
 // Import paths
 // Tambahkan path module Anda di sini
@@ -44,6 +45,7 @@ const applicantInvitationsPaths = require("./path/applicant_invitations");
 const applicantFormSignaturesPaths = require("./path/applicant_form_signatures");
 const applicantFormFilesPaths = require("./path/applicant_form_files");
 const masterQuestionsPaths = require("./path/master_questions");
+const applicantFormContentsPaths = require("./path/applicant_form_contents");
 
 // Combine all schemas
 const schemas = {
@@ -53,6 +55,7 @@ const schemas = {
   ...applicantFormSignaturesSchema,
   ...applicantFormFilesSchema,
   ...masterQuestionsSchema,
+  ...applicantFormContentsSchema,
 };
 
 // Combine all paths
@@ -63,6 +66,7 @@ const paths = {
   ...applicantFormSignaturesPaths,
   ...applicantFormFilesPaths,
   ...masterQuestionsPaths,
+  ...applicantFormContentsPaths,
 };
 
 const index = {
