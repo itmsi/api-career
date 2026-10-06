@@ -38,6 +38,10 @@ routing.use(`${API_TAG}/applicant-form-files`, applicantFormFilesModule);
 const masterQuestionsModule = require("../../modules/master_questions");
 routing.use(`${API_TAG}/master_questions`, masterQuestionsModule);
 
+// Applicant Form Contents Module (upload video & audio ke Nextcloud)
+const applicantFormContentsModule = require("../../modules/applicant_form_contents");
+routing.use(`${API_TAG}/applicant_form_contents`, applicantFormContentsModule);
+
 // Tambahkan routes module Anda di sini
 // Example:
 // const yourModule = require('../../modules/yourModule')
