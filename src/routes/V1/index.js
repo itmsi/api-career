@@ -34,6 +34,10 @@ routing.use(`${API_TAG}/applicant-form-signatures`, applicantFormSignaturesModul
 const applicantFormFilesModule = require("../../modules/applicant_form_files");
 routing.use(`${API_TAG}/applicant-form-files`, applicantFormFilesModule);
 
+// Master Questions Module
+const masterQuestionsModule = require("../../modules/master_questions");
+routing.use(`${API_TAG}/master_questions`, masterQuestionsModule);
+
 // Tambahkan routes module Anda di sini
 // Example:
 // const yourModule = require('../../modules/yourModule')
