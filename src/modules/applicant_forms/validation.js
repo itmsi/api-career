@@ -108,6 +108,10 @@ const createValidation = [
   arrayOfRecords('applicant_form_files', 'applicant_form_files', [
     'file_title', 'file_type', 'file'
   ]),
+  arrayOfRecords('applicant_form_contents', 'applicant_form_contents', [
+    'file_title_video', 'file_type_video', 'file_video',
+    'file_title_audio', 'file_type_audio', 'file_audio'
+  ]),
   optionalString('signature_link', 'signature_link', { max: MAX_LONG }),
   body('signature_date').optional({ nullable: true }).isDate().withMessage('signature_date harus berupa tanggal yang valid'),
   body('is_delete').optional().isBoolean().withMessage('is_delete harus boolean')

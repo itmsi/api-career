@@ -49,7 +49,7 @@ const applicantFormContentsPaths = require("./path/applicant_form_contents");
 
 // Combine all schemas
 const schemas = {
-  ...exampleSchema,
+  // ...exampleSchema,
   ...applicantFormsSchema,
   ...applicantInvitationsSchema,
   ...applicantFormSignaturesSchema,
@@ -60,7 +60,7 @@ const schemas = {
 
 // Combine all paths
 const paths = {
-  ...examplePaths,
+  // ...examplePaths,
   ...applicantFormsPaths,
   ...applicantInvitationsPaths,
   ...applicantFormSignaturesPaths,

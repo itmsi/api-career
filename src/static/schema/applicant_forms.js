@@ -62,6 +62,7 @@ const applicantFormsSchema = {
       references_old_company: { type: 'array', nullable: true, items: { type: 'object' } },
       following_answers: { type: 'array', nullable: true, items: { type: 'object' } },
       applicant_form_files: { type: 'array', nullable: true, items: { type: 'object' } },
+      applicant_form_contents: { type: 'array', nullable: true, items: { type: 'object' } },
       signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Share link Nextcloud dari file signature yang terakhir diupload' },
       signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
       is_delete: { type: 'boolean', nullable: true, example: false }
@@ -208,6 +209,23 @@ const applicantFormsSchema = {
         },
         example: [{ file_title: '', file_type: '', file: '' }]
       },
+      applicant_form_contents: {
+        type: 'array',
+        nullable: true,
+        description: 'Daftar content video & audio pelamar (jsonb). Isi file_video/file_audio berupa link hasil upload lewat endpoint /applicant_form_contents',
+        items: {
+          type: 'object',
+          properties: {
+            file_title_video: { type: 'string', example: 'Video Perkenalan' },
+            file_type_video: { type: 'string', example: 'video' },
+            file_video: { type: 'string', example: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d' },
+            file_title_audio: { type: 'string', example: 'Rekaman Suara' },
+            file_type_audio: { type: 'string', example: 'audio' },
+            file_audio: { type: 'string', example: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d' }
+          }
+        },
+        example: [{ file_title_video: '', file_type_video: '', file_video: '', file_title_audio: '', file_type_audio: '', file_audio: '' }]
+      },
       signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Share link Nextcloud dari file signature yang terakhir diupload (dikelola lewat endpoint /applicant-form-signatures)' },
       signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
       created_at: { type: 'string', format: 'date-time' },
@@ -287,6 +305,18 @@ const applicantFormsSchema = {
         type: 'array',
         nullable: true,
         example: [{ file_title: '', file_type: '', file: '' }]
+      },
+      applicant_form_contents: {
+        type: 'array',
+        nullable: true,
+        example: [{
+          file_title_video: 'Video Perkenalan',
+          file_type_video: 'video',
+          file_video: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d',
+          file_title_audio: 'Rekaman Suara',
+          file_type_audio: 'audio',
+          file_audio: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d'
+        }]
       },
       signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO' },
       signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' }
