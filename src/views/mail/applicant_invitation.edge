@@ -1,62 +1,110 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 
 <head>
-    <meta http-equiv="Content-Type" content="text/html charset=UTF-8" />
+    <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Undangan Pengisian Applicant Form</title>
-    <style>
-        * {
-            font-size: 14px;
-            font-family: Arial, Helvetica, sans-serif;
-            line-height: 1.5;
-        }
-    </style>
+    <title>Lengkapi Data Pelamar - PT Motorsights</title>
 </head>
 
-<body style="max-width: 600px; margin: 30px auto;">
-    <table style="width:100%">
+<body style="margin: 0; padding: 0; background-color: #f4f5f7; font-family: Arial, Helvetica, sans-serif; color: #333333;">
+    <!-- Preheader: teks ringkas yang tampil di preview inbox -->
+    <div style="display: none; max-height: 0; overflow: hidden; mso-hide: all;">
+        Lamaran Anda sudah kami terima. Lengkapi formulir data pelamar sebelum {{data.expires_at}}.
+    </div>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color: #f4f5f7;">
         <tr>
-            <td align="left" style="font-size: 20px; font-weight: bold;">Career</td>
+            <td align="center" style="padding: 24px 12px;">
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"
+                    style="max-width: 600px; background-color: #ffffff; border-radius: 8px;">
+                    <!-- Logo -->
+                    <tr>
+                        <td align="left" style="padding: 28px 32px 12px 32px; border-bottom: 1px solid #eeeeee;">
+                            <a href="https://motorsights.com" target="_blank" style="text-decoration: none;">
+                                <img src="https://motorsights.com/assets/custom/images/motor-sights-international.png"
+                                    alt="PT Motorsights" width="180"
+                                    style="display: block; width: 180px; max-width: 100%; height: auto; border: 0;" />
+                            </a>
+                        </td>
+                    </tr>
+
+                    <!-- Konten -->
+                    <tr>
+                        <td style="padding: 28px 32px 8px 32px; font-size: 15px; line-height: 1.6;">
+                            <p style="margin: 0 0 16px 0;">Halo {{data.first_name}},</p>
+                            <p style="margin: 0 0 16px 0;">
+                                Terima kasih telah melamar di PT Motorsights. Lamaran Anda sudah kami terima.
+                                Sebagai langkah berikutnya, mohon lengkapi formulir data pelamar melalui portal
+                                karier resmi kami:
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Tombol -->
+                    <tr>
+                        <td align="center" style="padding: 8px 32px 8px 32px;">
+                            <table role="presentation" cellpadding="0" cellspacing="0" border="0">
+                                <tr>
+                                    <td align="center" bgcolor="#c8102e" style="border-radius: 6px;">
+                                        <a href="{{data.applicant_form_url}}" target="_blank"
+                                            style="display: inline-block; padding: 14px 32px; font-size: 15px; font-weight: bold; color: #ffffff; text-decoration: none; border-radius: 6px;">
+                                            Lengkapi Data Pelamar
+                                        </a>
+                                    </td>
+                                </tr>
+                            </table>
+                        </td>
+                    </tr>
+
+                    <!-- Link cadangan: teks dipersingkat, href tetap url lengkap -->
+                    <tr>
+                        <td align="center" style="padding: 8px 32px 20px 32px; font-size: 13px; line-height: 1.5; color: #666666;">
+                            atau buka:
+                            <a href="{{data.applicant_form_url}}" target="_blank"
+                                style="color: #c8102e; text-decoration: underline; word-break: break-all;">{{data.applicant_form_display_url}}</a>
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td style="padding: 0 32px 8px 32px; font-size: 15px; line-height: 1.6;">
+                            <p style="margin: 0 0 16px 0;">
+                                Formulir dapat diisi sampai <strong>{{data.expires_at}}</strong>. Anda bisa menyimpan
+                                dan melanjutkan pengisian kapan saja sebelum mengirimkannya.
+                            </p>
+                            <p style="margin: 0 0 16px 0;">
+                                Jika ada pertanyaan, silakan balas email ini atau hubungi kami di
+                                <a href="mailto:{{data.contact_email}}" style="color: #c8102e; text-decoration: none;">{{data.contact_email}}</a>.
+                            </p>
+                            <p style="margin: 0 0 24px 0;">
+                                Salam,<br />
+                                <strong>Tim Rekrutmen PT Motorsights</strong>
+                            </p>
+                        </td>
+                    </tr>
+
+                    <!-- Footer -->
+                    <tr>
+                        <td style="padding: 20px 32px 28px 32px; border-top: 1px solid #eeeeee; font-size: 12px; line-height: 1.6; color: #888888;">
+                            <p style="margin: 0 0 8px 0;">
+                                @if(data.company_address)
+                                {{data.company_address}} &middot;
+                                @endif
+                                @if(data.company_phone)
+                                {{data.company_phone}} &middot;
+                                @endif
+                                <a href="https://motorsights.com" target="_blank" style="color: #888888; text-decoration: underline;">motorsights.com</a>
+                            </p>
+                            <p style="margin: 0; font-weight: bold; color: #666666;">
+                                Motorsights tidak pernah memungut biaya apa pun dalam proses rekrutmen.
+                            </p>
+                        </td>
+                    </tr>
+                </table>
+            </td>
         </tr>
     </table>
-    <p>Halo {{data.full_name}},</p>
-    <p>Terima kasih atas ketertarikan Anda untuk bergabung bersama kami. Silakan lengkapi formulir data pelamar
-        (applicant form) menggunakan data berikut:</p>
-    <p>
-    <table>
-        <tr>
-            <td width="150px">Nama</td>
-            <td>: {{data.full_name}}</td>
-        </tr>
-        <tr>
-            <td>Email</td>
-            <td>: {{data.email}}</td>
-        </tr>
-        <tr>
-            <td>No. Handphone</td>
-            <td>: {{data.no_mobile}}</td>
-        </tr>
-    </table>
-    </p>
-    <p>Silakan klik tombol di bawah ini untuk mengisi applicant form:</p>
-    <p style="text-align: center;">
-        <a href="{{data.applicant_form_url}}" target="_blank"
-            style="display: inline-block; padding: 12px 24px; background-color: #1a73e8; color: #ffffff; text-decoration: none; border-radius: 4px; font-weight: bold;">
-            Isi Applicant Form
-        </a>
-    </p>
-    <p>Atau salin dan buka link berikut pada browser Anda:<br />
-        <a href="{{data.applicant_form_url}}" target="_blank">{{data.applicant_form_url}}</a>
-    </p>
-    <p><strong>Catatan:</strong> Link ini bersifat pribadi dan hanya berlaku sampai <strong>{{data.expires_at}}</strong>.
-        Anda bisa membuka link ini berkali-kali untuk melanjutkan pengisian selama data belum Anda submit. Namun,
-        begitu formulir berhasil dikirim, link ini akan otomatis terkunci dan tidak bisa dibuka lagi.</p>
-    <p>Salam hangat,<br />Tim Career</p>
-    <br /><br />
-    <p style="font-size: 12px; color: #999; text-align: center;">Email dikirimkan otomatis melalui sistem, mohon
-        tidak membalas email ini.</p>
 </body>
 
 </html>

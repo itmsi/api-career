@@ -14,6 +14,9 @@ const TOKEN_SECRET = process.env.APPLICANT_FORM_TOKEN_SECRET || process.env.JWT_
 const TOKEN_EXPIRES_IN = process.env.APPLICANT_FORM_TOKEN_EXPIRES_IN || '3d'
 const APPLICANT_FORM_URL = process.env.APPLICANT_FORM_URL || 'https://career.motorsights.com/applicant-form'
 const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true'
+const RECRUITMENT_CONTACT_EMAIL = process.env.RECRUITMENT_CONTACT_EMAIL || 'career-motorsights@motorsights.com'
+const COMPANY_ADDRESS = process.env.COMPANY_ADDRESS || null
+const COMPANY_PHONE = process.env.COMPANY_PHONE || null
 
 const getRequesterId = (user) => {
   if (!user) return null
@@ -59,6 +62,15 @@ const generateAccessToken = (invitationId) => {
 
 const buildApplicantFormUrl = (token) => `${APPLICANT_FORM_URL}/${token}`
 
+// Teks link di email dipersingkat supaya token yang panjang tidak tampil semua,
+// contoh: career.motorsights.com/applicant-form/eyJhbG... (href tetap url lengkap)
+const buildDisplayUrl = (token) => {
+  const baseUrl = APPLICANT_FORM_URL.replace(/^https?:\/\//, '')
+  return `${baseUrl}/${String(token || '').slice(0, 6)}...`
+}
+
+const getFirstName = (fullName) => String(fullName || '').trim().split(/\s+/)[0] || 'Pelamar'
+
 /**
  * HR input nama, email, no_mobile -> generate invitation + token
  */
@@ -99,20 +111,28 @@ const sendInvitationEmail = async (id) => {
 
   const expiresAtFormatted = new Intl.DateTimeFormat('id-ID', {
     timeZone: 'Asia/Jakarta',
-    dateStyle: 'long',
-    timeStyle: 'short'
+    dateStyle: 'long'
   }).format(new Date(invitation.token_expires_at))
+
+  const firstName = getFirstName(invitation.full_name)
 
   const result = await Mail.init()
     .to(invitation.email)
-    .subject('Undangan Pengisian Applicant Form')
+    .subject(`${firstName}, lanjutkan lamaran Anda di PT Motorsights — lengkapi data pelamar`)
+    // Supaya "balas email ini" langsung masuk ke tim rekrutmen, bukan ke alamat sender sistem
+    .additional({ replyTo: RECRUITMENT_CONTACT_EMAIL })
     .html('mail/applicant_invitation', {
       data: {
+        first_name: firstName,
         full_name: invitation.full_name,
         email: invitation.email,
         no_mobile: invitation.no_mobile,
         applicant_form_url: applicantFormUrl,
-        expires_at: `${expiresAtFormatted} WIB`
+        applicant_form_display_url: buildDisplayUrl(invitation.token),
+        expires_at: expiresAtFormatted,
+        contact_email: RECRUITMENT_CONTACT_EMAIL,
+        company_address: COMPANY_ADDRESS,
+        company_phone: COMPANY_PHONE
       }
     })
     .send()
