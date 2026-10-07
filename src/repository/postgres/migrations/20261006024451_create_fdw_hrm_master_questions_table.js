@@ -33,6 +33,7 @@ CREATE FOREIGN TABLE IF NOT EXISTS db_hrm_master_questions (
       question_en text,
       question_cn text,
       focus_assessment varchar(255),
+      step varchar(255),
       created_at timestamptz,
       created_by uuid,
       updated_at timestamptz,

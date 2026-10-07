@@ -21,7 +21,7 @@ const masterQuestionPaths = {
                 search: { type: 'string', example: '' },
                 sort_by: {
                   type: 'string',
-                  enum: ['created_at', 'question_id', 'question_en', 'focus_assessment'],
+                  enum: ['created_at', 'question_id', 'question_en', 'focus_assessment', 'step'],
                   example: 'created_at'
                 },
                 sort_order: { type: 'string', enum: ['asc', 'desc'], example: 'desc' }
