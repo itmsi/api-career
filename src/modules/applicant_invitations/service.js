@@ -1,4 +1,5 @@
 const crypto = require('crypto')
+const path = require('path')
 const jwt = require('jsonwebtoken')
 const repository = require('./repository')
 const Mail = require('../../utils/mail')
@@ -19,6 +20,17 @@ const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true'
 // "Reply" tidak kena bounce. Kosongkan kalau belum ada alamat yang bisa menerima email.
 const RECRUITMENT_REPLY_TO = process.env.RECRUITMENT_REPLY_TO || null
 
+// Logo email. Kalau EMAIL_LOGO_URL diisi (url publik, mis. hasil serve
+// public/images lewat gateway), logo diambil dari url tsb: cara ini paling
+// konsisten di Gmail. Kalau kosong, fallback embed file lokal sebagai inline
+// attachment (cid) supaya tetap jalan di environment tanpa url publik.
+const EMAIL_LOGO_URL = process.env.EMAIL_LOGO_URL || null
+const LOGO_CID = 'motorsights-logo'
+const LOGO_PATH = path.join(__dirname, '../../../public/images/motor-sights-international.png')
+const LOGO_ATTACHMENTS = EMAIL_LOGO_URL
+  ? []
+  : [{ filename: 'motor-sights-international.png', path: LOGO_PATH, cid: LOGO_CID }]
+const LOGO_SRC = EMAIL_LOGO_URL || `cid:${LOGO_CID}`
 const COMPANY_ADDRESS = process.env.COMPANY_ADDRESS ||
   'Head Office, Jl. Cakung Cilincing Raya No.KM 35 Kav 532, RT.9/RW.8, Cakung Bar., Kec. Cakung, Kota Jakarta Timur, Daerah Khusus Ibukota Jakarta 13910'
 const COMPANY_PHONE = process.env.COMPANY_PHONE || '(021) 80603068'
@@ -149,12 +161,8 @@ const sendInvitationEmail = async (id) => {
   const result = await Mail.init()
     .to(invitation.email)
     .subject(`${firstName}, lengkapi data pelamar — PT Motorsights`)
-    .additional({
-      // Logo di template berupa base64 (data: uri) yang diblokir Gmail/Outlook,
-      // jadi saat kirim diubah otomatis oleh nodemailer jadi inline attachment (cid)
-      attachDataUrls: true,
-      ...(RECRUITMENT_REPLY_TO ? { replyTo: RECRUITMENT_REPLY_TO } : {})
-    })
+    .additional(RECRUITMENT_REPLY_TO ? { replyTo: RECRUITMENT_REPLY_TO } : {})
+    .attachments(LOGO_ATTACHMENTS)
     .html('mail/applicant_invitation', {
       data: {
         first_name: firstName,
@@ -165,7 +173,8 @@ const sendInvitationEmail = async (id) => {
         expires_at: expiresAtFormatted,
         company_address: COMPANY_ADDRESS,
         company_phone: COMPANY_PHONE,
-        company_phone_tel: toTelLink(COMPANY_PHONE)
+        company_phone_tel: toTelLink(COMPANY_PHONE),
+        logo_src: LOGO_SRC
       }
     })
     .text(buildInvitationText({
