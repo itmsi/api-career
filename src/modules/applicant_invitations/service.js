@@ -1,4 +1,5 @@
 const crypto = require('crypto')
+const path = require('path')
 const jwt = require('jsonwebtoken')
 const repository = require('./repository')
 const Mail = require('../../utils/mail')
@@ -18,6 +19,11 @@ const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true'
 // forwarding, mis. Cloudflare Email Routing) supaya pelamar yang tetap menekan
 // "Reply" tidak kena bounce. Kosongkan kalau belum ada alamat yang bisa menerima email.
 const RECRUITMENT_REPLY_TO = process.env.RECRUITMENT_REPLY_TO || null
+
+// Logo di-embed sebagai inline attachment (cid) supaya tetap tampil walaupun
+// server tidak bisa diakses publik dan tidak bergantung ke hosting gambar luar
+const LOGO_CID = 'motorsights-logo'
+const LOGO_PATH = path.join(__dirname, '../../../public/images/motor-sights-international.png')
 const COMPANY_ADDRESS = process.env.COMPANY_ADDRESS ||
   'Head Office, Jl. Cakung Cilincing Raya No.KM 35 Kav 532, RT.9/RW.8, Cakung Bar., Kec. Cakung, Kota Jakarta Timur, Daerah Khusus Ibukota Jakarta 13910'
 const COMPANY_PHONE = process.env.COMPANY_PHONE || '(021) 80603068'
@@ -149,6 +155,11 @@ const sendInvitationEmail = async (id) => {
     .to(invitation.email)
     .subject(`${firstName}, lengkapi data pelamar — PT Motorsights`)
     .additional(RECRUITMENT_REPLY_TO ? { replyTo: RECRUITMENT_REPLY_TO } : {})
+    .attachments([{
+      filename: 'motor-sights-international.png',
+      path: LOGO_PATH,
+      cid: LOGO_CID
+    }])
     .html('mail/applicant_invitation', {
       data: {
         first_name: firstName,
@@ -159,7 +170,8 @@ const sendInvitationEmail = async (id) => {
         expires_at: expiresAtFormatted,
         company_address: COMPANY_ADDRESS,
         company_phone: COMPANY_PHONE,
-        company_phone_tel: toTelLink(COMPANY_PHONE)
+        company_phone_tel: toTelLink(COMPANY_PHONE),
+        logo_cid: LOGO_CID
       }
     })
     .text(buildInvitationText({
