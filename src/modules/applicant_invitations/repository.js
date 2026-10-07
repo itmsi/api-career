@@ -179,10 +179,47 @@ const remove = async (id, deletedBy) => {
     .first()
 }
 
+// Upload yang dilakukan pelamar lewat token undangan tercatat dengan
+// created_by = id undangan, dipakai untuk menampilkan ulang hasil upload
+// sebelumnya di halaman applicant-form (GET /verify/:token)
+const findUploadedFilesByCreator = async (createdBy) => {
+  return await pgCore('applicant_form_files')
+    .select('file_title', 'file_type', 'file_link as file')
+    .where({ created_by: createdBy, deleted_at: null })
+    .orderBy('created_at', 'asc')
+}
+
+const findUploadedContentsByCreator = async (createdBy) => {
+  return await pgCore('applicant_form_contents')
+    .select(
+      'id_question',
+      'file_title_video',
+      'file_type_video',
+      'file_link_video as file_video',
+      'file_title_audio',
+      'file_type_audio',
+      'file_link_audio as file_audio'
+    )
+    .where({ created_by: createdBy, deleted_at: null })
+    .orderBy('created_at', 'asc')
+}
+
+// Signature yang dipakai adalah upload terakhir
+const findLatestSignatureByCreator = async (createdBy) => {
+  return await pgCore('applicant_form_signatures')
+    .select('signature_link', 'signature_date')
+    .where({ created_by: createdBy, deleted_at: null })
+    .orderBy('created_at', 'desc')
+    .first()
+}
+
 module.exports = {
   findAll,
   findById,
   findByToken,
+  findUploadedFilesByCreator,
+  findUploadedContentsByCreator,
+  findLatestSignatureByCreator,
   create,
   updateContact,
   markCompleted,
