@@ -13,6 +13,7 @@ const SELECT_COLUMNS = [
   "question_en",
   "question_cn",
   "focus_assessment",
+  "step",
   "created_at",
   "created_by",
   "updated_at",
@@ -25,12 +26,14 @@ const ALLOWED_SORT_COLUMNS = [
   "question_id",
   "question_en",
   "focus_assessment",
+  "step",
 ];
 const SEARCHABLE_COLUMNS = [
   "question_id",
   "question_en",
   "question_cn",
   "focus_assessment",
+  "step",
 ];
 
 const findAll = async (params = {}) => {

@@ -16,6 +16,7 @@ const masterQuestionSchemas = {
       question_en: { type: 'string', example: 'Tell us about yourself' },
       question_cn: { type: 'string', nullable: true, example: '请介绍一下你自己' },
       focus_assessment: { type: 'string', nullable: true, example: 'Communication' },
+      step: { type: 'string', nullable: true, example: '1' },
       created_at: { type: 'string', format: 'date-time', example: '2026-10-06T00:00:00.000Z' },
       created_by: { type: 'string', nullable: true },
       updated_at: { type: 'string', format: 'date-time', example: '2026-10-06T00:00:00.000Z' },
