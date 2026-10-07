@@ -3,6 +3,7 @@ const applicantFormContentsSchema = {
     type: 'object',
     properties: {
       id: { type: 'string', format: 'uuid', example: '6f6c4d1d-4b90-41b8-90c5-6d2336f3f2a1' },
+      id_question: { type: 'string', format: 'uuid', nullable: true, example: '3a1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d' },
       file_title_video: { type: 'string', nullable: true, example: 'Video Perkenalan' },
       file_type_video: { type: 'string', nullable: true, example: 'video' },
       file_name_video: { type: 'string', nullable: true, example: 'video-1758000000000-abc123.mp4' },
@@ -26,6 +27,7 @@ const applicantFormContentsSchema = {
     type: 'object',
     description: 'Semua field opsional, termasuk file video dan audio',
     properties: {
+      id_question: { type: 'string', format: 'uuid', nullable: true, description: 'ID master question (db_hrm_master_questions.id), opsional', example: '3a1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d' },
       file_title_video: { type: 'string', example: 'Video Perkenalan' },
       file_type_video: { type: 'string', example: 'video' },
       file_video: { type: 'string', format: 'binary', description: 'File video (mp4/webm/mov/avi/mkv/mpeg), opsional' },
@@ -38,6 +40,7 @@ const applicantFormContentsSchema = {
     type: 'object',
     description: 'Response ringkas setelah create/update content',
     properties: {
+      id_question: { type: 'string', format: 'uuid', nullable: true, example: '3a1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d' },
       file_title_video: { type: 'string', nullable: true, example: 'Video Perkenalan' },
       file_type_video: { type: 'string', nullable: true, example: 'video' },
       file_video: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO' },

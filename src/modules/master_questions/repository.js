@@ -13,6 +13,7 @@ const SELECT_COLUMNS = [
   "question_en",
   "question_cn",
   "focus_assessment",
+  "step",
   "created_at",
   "created_by",
   "updated_at",
@@ -25,12 +26,14 @@ const ALLOWED_SORT_COLUMNS = [
   "question_id",
   "question_en",
   "focus_assessment",
+  "step",
 ];
 const SEARCHABLE_COLUMNS = [
   "question_id",
   "question_en",
   "question_cn",
   "focus_assessment",
+  "step",
 ];
 
 const findAll = async (params = {}) => {
@@ -69,7 +72,16 @@ const findById = async (id) => {
     .first();
 };
 
+const findByIds = async (ids = []) => {
+  if (ids.length === 0) return [];
+  return await pgCore(TABLE_NAME)
+    .select(SELECT_COLUMNS)
+    .whereIn("id", ids)
+    .where({ deleted_at: null });
+};
+
 module.exports = {
   findAll,
   findById,
+  findByIds,
 };

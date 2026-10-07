@@ -49,7 +49,37 @@ const applicantInvitationSchemas = {
       id: { type: 'string', format: 'uuid' },
       full_name: { type: 'string', example: 'John Doe' },
       email: { type: 'string', example: 'john.doe@example.com' },
-      no_mobile: { type: 'string', example: '081234567890' }
+      no_mobile: { type: 'string', example: '081234567890' },
+      applicant_form_files: {
+        type: 'array',
+        description: 'File yang sudah diupload pelamar (applicant_form_files dengan created_by = id undangan). Array kosong kalau belum ada.',
+        items: {
+          type: 'object',
+          properties: {
+            file_title: { type: 'string', nullable: true, example: 'CV' },
+            file_type: { type: 'string', nullable: true, example: 'pdf' },
+            file: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO' }
+          }
+        }
+      },
+      applicant_form_contents: {
+        type: 'array',
+        description: 'Content video & audio yang sudah diupload pelamar (applicant_form_contents dengan created_by = id undangan). Array kosong kalau belum ada.',
+        items: {
+          type: 'object',
+          properties: {
+            id_question: { type: 'string', format: 'uuid', nullable: true, example: '3a1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d' },
+            file_title_video: { type: 'string', nullable: true, example: 'Video Perkenalan' },
+            file_type_video: { type: 'string', nullable: true, example: 'video' },
+            file_video: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d' },
+            file_title_audio: { type: 'string', nullable: true, example: 'Rekaman Suara' },
+            file_type_audio: { type: 'string', nullable: true, example: 'audio' },
+            file_audio: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d' }
+          }
+        }
+      },
+      signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Signature terakhir yang diupload pelamar (applicant_form_signatures dengan created_by = id undangan)' },
+      signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' }
     }
   }
 }

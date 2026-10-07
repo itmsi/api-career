@@ -1,4 +1,5 @@
 const crypto = require('crypto')
+const path = require('path')
 const jwt = require('jsonwebtoken')
 const repository = require('./repository')
 const Mail = require('../../utils/mail')
@@ -14,6 +15,25 @@ const TOKEN_SECRET = process.env.APPLICANT_FORM_TOKEN_SECRET || process.env.JWT_
 const TOKEN_EXPIRES_IN = process.env.APPLICANT_FORM_TOKEN_EXPIRES_IN || '3d'
 const APPLICANT_FORM_URL = process.env.APPLICANT_FORM_URL || 'https://career.motorsights.com/applicant-form'
 const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true'
+// Email undangan bersifat no-reply. Isi dengan inbox HR yang aktif (atau alamat
+// forwarding, mis. Cloudflare Email Routing) supaya pelamar yang tetap menekan
+// "Reply" tidak kena bounce. Kosongkan kalau belum ada alamat yang bisa menerima email.
+const RECRUITMENT_REPLY_TO = process.env.RECRUITMENT_REPLY_TO || null
+
+// Logo email. Kalau EMAIL_LOGO_URL diisi (url publik, mis. hasil serve
+// public/images lewat gateway), logo diambil dari url tsb: cara ini paling
+// konsisten di Gmail. Kalau kosong, fallback embed file lokal sebagai inline
+// attachment (cid) supaya tetap jalan di environment tanpa url publik.
+const EMAIL_LOGO_URL = process.env.EMAIL_LOGO_URL || null
+const LOGO_CID = 'motorsights-logo'
+const LOGO_PATH = path.join(__dirname, '../../../public/images/motor-sights-international.png')
+const LOGO_ATTACHMENTS = EMAIL_LOGO_URL
+  ? []
+  : [{ filename: 'motor-sights-international.png', path: LOGO_PATH, cid: LOGO_CID }]
+const LOGO_SRC = EMAIL_LOGO_URL || `cid:${LOGO_CID}`
+const COMPANY_ADDRESS = process.env.COMPANY_ADDRESS ||
+  'Head Office, Jl. Cakung Cilincing Raya No.KM 35 Kav 532, RT.9/RW.8, Cakung Bar., Kec. Cakung, Kota Jakarta Timur, Daerah Khusus Ibukota Jakarta 13910'
+const COMPANY_PHONE = process.env.COMPANY_PHONE || '(021) 80603068'
 
 const getRequesterId = (user) => {
   if (!user) return null
@@ -59,6 +79,40 @@ const generateAccessToken = (invitationId) => {
 
 const buildApplicantFormUrl = (token) => `${APPLICANT_FORM_URL}/${token}`
 
+const getFirstName = (fullName) => String(fullName || '').trim().split(/\s+/)[0] || 'Pelamar'
+
+// (021) 80603068 -> +622180603068, untuk link tel: di footer
+const toTelLink = (phone) => {
+  const digits = String(phone || '').replace(/\D/g, '')
+  return digits.startsWith('0') ? `+62${digits.slice(1)}` : digits
+}
+
+// Versi plain text dari mail/applicant_invitation.edge. Dikirim bersamaan dengan
+// versi HTML (multipart/alternative) karena email yang hanya berisi HTML lebih
+// sering ditandai spam. Di plain text url terpaksa ditampilkan utuh.
+const buildInvitationText = ({ firstName, applicantFormUrl, expiresAt }) => [
+  `Halo ${firstName},`,
+  '',
+  'Terima kasih telah melamar di PT Motorsights. Lamaran Anda sudah kami terima. Sebagai langkah berikutnya, mohon lengkapi formulir data pelamar melalui portal karier resmi kami:',
+  '',
+  'Lengkapi Data Pelamar:',
+  applicantFormUrl,
+  '',
+  `Formulir dapat diisi sampai ${expiresAt}. Anda bisa menyimpan dan melanjutkan pengisian kapan saja sebelum mengirimkannya.`,
+  '',
+  `Email ini dikirim otomatis dan tidak dapat dibalas. Untuk pertanyaan, hubungi kami di ${COMPANY_PHONE}.`,
+  '',
+  'Salam,',
+  'Tim Rekrutmen PT Motorsights',
+  '',
+  '--',
+  'PT Motorsights',
+  COMPANY_ADDRESS,
+  `Telp. ${COMPANY_PHONE} · motorsights.com`,
+  '',
+  'Motorsights tidak pernah memungut biaya apa pun dalam proses rekrutmen.'
+].join('\n')
+
 /**
  * HR input nama, email, no_mobile -> generate invitation + token
  */
@@ -99,22 +153,35 @@ const sendInvitationEmail = async (id) => {
 
   const expiresAtFormatted = new Intl.DateTimeFormat('id-ID', {
     timeZone: 'Asia/Jakarta',
-    dateStyle: 'long',
-    timeStyle: 'short'
+    dateStyle: 'long'
   }).format(new Date(invitation.token_expires_at))
+
+  const firstName = getFirstName(invitation.full_name)
 
   const result = await Mail.init()
     .to(invitation.email)
-    .subject('Undangan Pengisian Applicant Form')
+    .subject(`${firstName}, lengkapi data pelamar — PT Motorsights`)
+    .additional(RECRUITMENT_REPLY_TO ? { replyTo: RECRUITMENT_REPLY_TO } : {})
+    .attachments(LOGO_ATTACHMENTS)
     .html('mail/applicant_invitation', {
       data: {
+        first_name: firstName,
         full_name: invitation.full_name,
         email: invitation.email,
         no_mobile: invitation.no_mobile,
         applicant_form_url: applicantFormUrl,
-        expires_at: `${expiresAtFormatted} WIB`
+        expires_at: expiresAtFormatted,
+        company_address: COMPANY_ADDRESS,
+        company_phone: COMPANY_PHONE,
+        company_phone_tel: toTelLink(COMPANY_PHONE),
+        logo_src: LOGO_SRC
       }
     })
+    .text(buildInvitationText({
+      firstName,
+      applicantFormUrl,
+      expiresAt: expiresAtFormatted
+    }))
     .send()
 
   if (!result.status) {
@@ -169,6 +236,31 @@ const verifyAccessToken = async (token) => {
 }
 
 /**
+ * Dipakai oleh GET /verify/:token. Selain validasi token, ikut mengembalikan
+ * file, content (video & audio) dan signature yang sudah diupload pelamar
+ * (created_by = id undangan), supaya bisa ditampilkan ulang di form.
+ * Sengaja dipisah dari verifyAccessToken karena fungsi itu juga dipakai
+ * middleware di setiap request applicant-form.
+ */
+const verifyAccessTokenWithUploads = async (token) => {
+  const invitation = await verifyAccessToken(token)
+
+  const [files, contents, signature] = await Promise.all([
+    repository.findUploadedFilesByCreator(invitation.id),
+    repository.findUploadedContentsByCreator(invitation.id),
+    repository.findLatestSignatureByCreator(invitation.id)
+  ])
+
+  return {
+    ...invitation,
+    applicant_form_files: files,
+    applicant_form_contents: contents,
+    signature_link: signature?.signature_link ?? null,
+    signature_date: signature?.signature_date ?? null
+  }
+}
+
+/**
  * Dipanggil setelah applicant berhasil submit applicant_forms,
  * supaya token yang sama tidak bisa dipakai ulang.
  */
@@ -190,6 +282,7 @@ module.exports = {
   createInvitation,
   sendInvitationEmail,
   verifyAccessToken,
+  verifyAccessTokenWithUploads,
   completeInvitation,
   getInvitations
 }

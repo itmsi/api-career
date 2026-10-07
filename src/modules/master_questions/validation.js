@@ -10,9 +10,9 @@ const getListValidation = [
   body('search').optional().isString().withMessage('Search harus berupa teks'),
   body('sort_by')
     .optional()
-    .isIn(['created_at', 'question_id', 'question_en', 'focus_assessment'])
+    .isIn(['created_at', 'question_id', 'question_en', 'focus_assessment', 'step'])
     .withMessage('sort_by tidak valid'),
-  body('sort_order').optional().isIn(['asc', 'desc']).withMessage('sort_order harus asc atau desc')
+  body('sort_order').optional().customSanitizer((v) => (typeof v === 'string' ? v.toLowerCase() : v)).isIn(['asc', 'desc']).withMessage('sort_order harus asc atau desc')
 ]
 
 module.exports = {
