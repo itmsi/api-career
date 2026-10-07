@@ -169,6 +169,31 @@ const verifyAccessToken = async (token) => {
 }
 
 /**
+ * Dipakai oleh GET /verify/:token. Selain validasi token, ikut mengembalikan
+ * file, content (video & audio) dan signature yang sudah diupload pelamar
+ * (created_by = id undangan), supaya bisa ditampilkan ulang di form.
+ * Sengaja dipisah dari verifyAccessToken karena fungsi itu juga dipakai
+ * middleware di setiap request applicant-form.
+ */
+const verifyAccessTokenWithUploads = async (token) => {
+  const invitation = await verifyAccessToken(token)
+
+  const [files, contents, signature] = await Promise.all([
+    repository.findUploadedFilesByCreator(invitation.id),
+    repository.findUploadedContentsByCreator(invitation.id),
+    repository.findLatestSignatureByCreator(invitation.id)
+  ])
+
+  return {
+    ...invitation,
+    applicant_form_files: files,
+    applicant_form_contents: contents,
+    signature_link: signature?.signature_link ?? null,
+    signature_date: signature?.signature_date ?? null
+  }
+}
+
+/**
  * Dipanggil setelah applicant berhasil submit applicant_forms,
  * supaya token yang sama tidak bisa dipakai ulang.
  */
@@ -190,6 +215,7 @@ module.exports = {
   createInvitation,
   sendInvitationEmail,
   verifyAccessToken,
+  verifyAccessTokenWithUploads,
   completeInvitation,
   getInvitations
 }

@@ -67,7 +67,7 @@ const resendEmail = async (req, res) => {
 const verifyToken = async (req, res) => {
   try {
     const { token } = req.params
-    const data = await service.verifyAccessToken(token)
+    const data = await service.verifyAccessTokenWithUploads(token)
     return successResponse(res, data, 'Token valid')
   } catch (error) {
     return errorResponse(res, error?.message || error, error?.statusCode || 500)

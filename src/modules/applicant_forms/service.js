@@ -1,5 +1,6 @@
 const repository = require('./repository')
 const invitationsRepository = require('../applicant_invitations/repository')
+const masterQuestionsRepository = require('../master_questions/repository')
 const { publishMoveFiles } = require('./file_mover')
 
 const APPLICANT_FORM_URL = process.env.APPLICANT_FORM_URL || 'https://career.motorsights.com/applicant-form'
@@ -18,7 +19,51 @@ const normalizeOptionalString = (value) => {
   return trimmed
 }
 
-const buildPayload = (payload = {}) => ({
+const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+const CONTENT_FILE_FIELDS = [
+  'file_title_video',
+  'file_type_video',
+  'file_video',
+  'file_title_audio',
+  'file_type_audio',
+  'file_audio'
+]
+
+// Setiap item applicant_form_contents wajib punya id_question yang terdaftar di
+// master questions (db_hrm_master_questions.id). Item yang id_question-nya kosong,
+// tidak valid, atau tidak ditemukan di-skip. Item yang lolos dilengkapi data
+// pertanyaan dari master questions, sehingga data yang dikirim klien untuk
+// question_id/question_en/dll selalu ditimpa dengan data master.
+const enrichContentsWithQuestions = async (contents) => {
+  if (!Array.isArray(contents)) return contents ?? null
+
+  const getIdQuestion = (item) => normalizeOptionalString(item?.id_question)
+  const ids = [...new Set(contents.map(getIdQuestion).filter((id) => id && UUID_REGEX.test(id)))]
+  const questions = await masterQuestionsRepository.findByIds(ids)
+  const questionById = new Map(questions.map((question) => [question.id, question]))
+
+  return contents.reduce((acc, item) => {
+    const question = questionById.get(getIdQuestion(item)?.toLowerCase())
+    if (!question) return acc
+
+    acc.push({
+      id_question: question.id,
+      question_id: question.question_id ?? null,
+      question_en: question.question_en ?? null,
+      question_cn: question.question_cn ?? null,
+      focus_assessment: question.focus_assessment ?? null,
+      step: question.step ?? null,
+      ...CONTENT_FILE_FIELDS.reduce((fields, field) => {
+        fields[field] = item[field] ?? null
+        return fields
+      }, {})
+    })
+    return acc
+  }, [])
+}
+
+const buildPayload = async (payload = {}) => ({
   full_name: normalizeOptionalString(payload.full_name),
   nickname: normalizeOptionalString(payload.nickname),
   no_mobile: normalizeOptionalString(payload.no_mobile),
@@ -45,7 +90,7 @@ const buildPayload = (payload = {}) => ({
   references_old_company: payload.references_old_company ?? null,
   following_answers: payload.following_answers ?? null,
   applicant_form_files: payload.applicant_form_files ?? null,
-  applicant_form_contents: payload.applicant_form_contents ?? null,
+  applicant_form_contents: await enrichContentsWithQuestions(payload.applicant_form_contents),
   signature_link: normalizeOptionalString(payload.signature_link),
   signature_date: normalizeOptionalString(payload.signature_date)
 })
@@ -75,7 +120,7 @@ const getApplicantFormById = async (id) => {
 const createApplicantForm = async (payload, user) => {
   const authorId = getRequesterId(user)
   const created = await repository.create({
-    ...buildPayload(payload),
+    ...(await buildPayload(payload)),
     created_by: authorId,
     updated_by: authorId
   })
@@ -114,7 +159,7 @@ const updateApplicantForm = async (id, payload, user) => {
 
   if (!invitation.applicant_form_id) {
     const created = await repository.create({
-      ...buildPayload(payload),
+      ...(await buildPayload(payload)),
       created_by: authorId,
       updated_by: authorId
     })
@@ -129,7 +174,7 @@ const updateApplicantForm = async (id, payload, user) => {
   }
 
   const updated = await repository.update(invitation.applicant_form_id, {
-    ...buildPayload(payload),
+    ...(await buildPayload(payload)),
     updated_by: authorId
   })
   publishMoveFiles(updated)

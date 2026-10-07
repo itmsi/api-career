@@ -72,7 +72,16 @@ const findById = async (id) => {
     .first();
 };
 
+const findByIds = async (ids = []) => {
+  if (ids.length === 0) return [];
+  return await pgCore(TABLE_NAME)
+    .select(SELECT_COLUMNS)
+    .whereIn("id", ids)
+    .where({ deleted_at: null });
+};
+
 module.exports = {
   findAll,
   findById,
+  findByIds,
 };

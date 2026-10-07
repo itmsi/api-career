@@ -1,3 +1,23 @@
+// Item applicant_form_contents yang tersimpan: data pertanyaan diambil dari
+// master questions (db_hrm_master_questions) berdasarkan id_question
+const applicantFormContentItem = {
+  type: 'object',
+  properties: {
+    id_question: { type: 'string', format: 'uuid', example: '3a1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d', description: 'db_hrm_master_questions.id' },
+    question_id: { type: 'string', nullable: true, example: 'Q001', description: 'db_hrm_master_questions.question_id' },
+    question_en: { type: 'string', nullable: true, example: 'Tell us about yourself', description: 'db_hrm_master_questions.question_en' },
+    question_cn: { type: 'string', nullable: true, example: '请介绍一下你自己', description: 'db_hrm_master_questions.question_cn' },
+    focus_assessment: { type: 'string', nullable: true, example: 'Communication', description: 'db_hrm_master_questions.focus_assessment' },
+    step: { type: 'string', nullable: true, example: '1', description: 'db_hrm_master_questions.step' },
+    file_title_video: { type: 'string', nullable: true, example: 'Video Perkenalan' },
+    file_type_video: { type: 'string', nullable: true, example: 'video' },
+    file_video: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d' },
+    file_title_audio: { type: 'string', nullable: true, example: 'Rekaman Suara' },
+    file_type_audio: { type: 'string', nullable: true, example: 'audio' },
+    file_audio: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d' }
+  }
+}
+
 const applicantFormsSchema = {
   ApplicantFormListItem: {
     type: 'object',
@@ -62,7 +82,7 @@ const applicantFormsSchema = {
       references_old_company: { type: 'array', nullable: true, items: { type: 'object' } },
       following_answers: { type: 'array', nullable: true, items: { type: 'object' } },
       applicant_form_files: { type: 'array', nullable: true, items: { type: 'object' } },
-      applicant_form_contents: { type: 'array', nullable: true, items: { type: 'object' } },
+      applicant_form_contents: { type: 'array', nullable: true, items: applicantFormContentItem },
       signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Share link Nextcloud dari file signature yang terakhir diupload' },
       signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
       is_delete: { type: 'boolean', nullable: true, example: false }
@@ -212,19 +232,8 @@ const applicantFormsSchema = {
       applicant_form_contents: {
         type: 'array',
         nullable: true,
-        description: 'Daftar content video & audio pelamar (jsonb). Isi file_video/file_audio berupa link hasil upload lewat endpoint /applicant_form_contents',
-        items: {
-          type: 'object',
-          properties: {
-            file_title_video: { type: 'string', example: 'Video Perkenalan' },
-            file_type_video: { type: 'string', example: 'video' },
-            file_video: { type: 'string', example: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d' },
-            file_title_audio: { type: 'string', example: 'Rekaman Suara' },
-            file_type_audio: { type: 'string', example: 'audio' },
-            file_audio: { type: 'string', example: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d' }
-          }
-        },
-        example: [{ file_title_video: '', file_type_video: '', file_video: '', file_title_audio: '', file_type_audio: '', file_audio: '' }]
+        description: 'Daftar content video & audio pelamar (jsonb). Isi file_video/file_audio berupa link hasil upload lewat endpoint /applicant_form_contents. Data pertanyaan (question_id, question_en, question_cn, focus_assessment, step) diambil dari master questions berdasarkan id_question.',
+        items: applicantFormContentItem
       },
       signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Share link Nextcloud dari file signature yang terakhir diupload (dikelola lewat endpoint /applicant-form-signatures)' },
       signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
@@ -309,7 +318,21 @@ const applicantFormsSchema = {
       applicant_form_contents: {
         type: 'array',
         nullable: true,
+        description: 'id_question wajib berisi id master question (db_hrm_master_questions.id). Item dengan id_question kosong/tidak ditemukan di master questions akan di-skip (tidak disimpan). question_id, question_en, question_cn, focus_assessment dan step diisi otomatis dari master questions.',
+        items: {
+          type: 'object',
+          properties: {
+            id_question: { type: 'string', format: 'uuid', example: '3a1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d' },
+            file_title_video: { type: 'string', example: 'Video Perkenalan' },
+            file_type_video: { type: 'string', example: 'video' },
+            file_video: { type: 'string', example: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d' },
+            file_title_audio: { type: 'string', example: 'Rekaman Suara' },
+            file_type_audio: { type: 'string', example: 'audio' },
+            file_audio: { type: 'string', example: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d' }
+          }
+        },
         example: [{
+          id_question: '3a1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d',
           file_title_video: 'Video Perkenalan',
           file_type_video: 'video',
           file_video: 'https://cloud.inlinegroupdc.com/s/3Y5K5Gw3sSrSX4d',

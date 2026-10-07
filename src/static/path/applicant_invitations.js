@@ -149,7 +149,7 @@ const applicantInvitationPaths = {
     get: {
       tags: ['Applicant Invitations'],
       summary: 'Verify applicant-form access token',
-      description: 'Dipanggil dari halaman applicant-form (public) untuk mengecek apakah token masih berlaku (belum expired) dan form belum pernah diisi (is_completed = false).',
+      description: 'Dipanggil dari halaman applicant-form (public) untuk mengecek apakah token masih berlaku (belum expired) dan form belum pernah diisi (is_completed = false). Kalau token valid, response juga berisi file, content (video & audio) dan signature yang sudah diupload pelamar (created_by = id undangan).',
       parameters: [
         {
           name: 'token',

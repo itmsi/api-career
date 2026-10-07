@@ -38,9 +38,9 @@ const isPlainRecord = (item) =>
   typeof item === 'object' && item !== null && !Array.isArray(item) &&
   Object.keys(item).every((key) => !DANGEROUS_KEYS.includes(key))
 
-const isSafeScalar = (value) => {
+const isSafeScalar = (value, maxLength = MAX_MEDIUM) => {
   if (value === null || value === undefined) return true
-  if (typeof value === 'string') return value.length <= MAX_MEDIUM
+  if (typeof value === 'string') return value.length <= maxLength
   if (typeof value === 'number' || typeof value === 'boolean') return true
   return false
 }
@@ -49,7 +49,7 @@ const isSafeScalar = (value) => {
 // dikenal dan value berupa scalar (bukan nested object/array), supaya
 // struktur payload yang sudah ada (lihat contoh request) tetap diterima
 // apa adanya, tapi item liar/berlebihan/bernested ditolak.
-const arrayOfRecords = (field, label, allowedKeys, { maxItems = MAX_ARRAY_ITEMS } = {}) =>
+const arrayOfRecords = (field, label, allowedKeys, { maxItems = MAX_ARRAY_ITEMS, maxScalarLength = MAX_MEDIUM } = {}) =>
   body(field)
     .optional({ nullable: true })
     .isArray({ max: maxItems }).withMessage(`${label} harus berupa array dengan maksimal ${maxItems} item`)
@@ -58,7 +58,7 @@ const arrayOfRecords = (field, label, allowedKeys, { maxItems = MAX_ARRAY_ITEMS 
       const valid = items.every((item) => {
         if (!isPlainRecord(item)) return false
         return Object.entries(item).every(
-          ([key, value]) => allowedKeys.includes(key) && isSafeScalar(value)
+          ([key, value]) => allowedKeys.includes(key) && isSafeScalar(value, maxScalarLength)
         )
       })
       if (!valid) {
@@ -108,10 +108,15 @@ const createValidation = [
   arrayOfRecords('applicant_form_files', 'applicant_form_files', [
     'file_title', 'file_type', 'file'
   ]),
+  // question_id/question_en/question_cn/focus_assessment/step diterima supaya data
+  // hasil GET bisa dikirim ulang apa adanya, tapi nilainya diabaikan dan diambil
+  // ulang dari master questions berdasarkan id_question (lihat service)
   arrayOfRecords('applicant_form_contents', 'applicant_form_contents', [
+    'id_question',
+    'question_id', 'question_en', 'question_cn', 'focus_assessment', 'step',
     'file_title_video', 'file_type_video', 'file_video',
     'file_title_audio', 'file_type_audio', 'file_audio'
-  ]),
+  ], { maxScalarLength: MAX_LONG }),
   optionalString('signature_link', 'signature_link', { max: MAX_LONG }),
   body('signature_date').optional({ nullable: true }).isDate().withMessage('signature_date harus berupa tanggal yang valid'),
   body('is_delete').optional().isBoolean().withMessage('is_delete harus boolean')
