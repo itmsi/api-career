@@ -14,9 +14,13 @@ const TOKEN_SECRET = process.env.APPLICANT_FORM_TOKEN_SECRET || process.env.JWT_
 const TOKEN_EXPIRES_IN = process.env.APPLICANT_FORM_TOKEN_EXPIRES_IN || '3d'
 const APPLICANT_FORM_URL = process.env.APPLICANT_FORM_URL || 'https://career.motorsights.com/applicant-form'
 const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true'
-const RECRUITMENT_CONTACT_EMAIL = process.env.RECRUITMENT_CONTACT_EMAIL || 'career-motorsights@motorsights.com'
-const COMPANY_ADDRESS = process.env.COMPANY_ADDRESS || null
-const COMPANY_PHONE = process.env.COMPANY_PHONE || null
+// Email undangan bersifat no-reply. Isi dengan inbox HR yang aktif (atau alamat
+// forwarding, mis. Cloudflare Email Routing) supaya pelamar yang tetap menekan
+// "Reply" tidak kena bounce. Kosongkan kalau belum ada alamat yang bisa menerima email.
+const RECRUITMENT_REPLY_TO = process.env.RECRUITMENT_REPLY_TO || null
+const COMPANY_ADDRESS = process.env.COMPANY_ADDRESS ||
+  'Head Office, Jl. Cakung Cilincing Raya No.KM 35 Kav 532, RT.9/RW.8, Cakung Bar., Kec. Cakung, Kota Jakarta Timur, Daerah Khusus Ibukota Jakarta 13910'
+const COMPANY_PHONE = process.env.COMPANY_PHONE || '(021) 80603068'
 
 const getRequesterId = (user) => {
   if (!user) return null
@@ -62,14 +66,39 @@ const generateAccessToken = (invitationId) => {
 
 const buildApplicantFormUrl = (token) => `${APPLICANT_FORM_URL}/${token}`
 
-// Teks link di email dipersingkat supaya token yang panjang tidak tampil semua,
-// contoh: career.motorsights.com/applicant-form/eyJhbG... (href tetap url lengkap)
-const buildDisplayUrl = (token) => {
-  const baseUrl = APPLICANT_FORM_URL.replace(/^https?:\/\//, '')
-  return `${baseUrl}/${String(token || '').slice(0, 6)}...`
+const getFirstName = (fullName) => String(fullName || '').trim().split(/\s+/)[0] || 'Pelamar'
+
+// (021) 80603068 -> +622180603068, untuk link tel: di footer
+const toTelLink = (phone) => {
+  const digits = String(phone || '').replace(/\D/g, '')
+  return digits.startsWith('0') ? `+62${digits.slice(1)}` : digits
 }
 
-const getFirstName = (fullName) => String(fullName || '').trim().split(/\s+/)[0] || 'Pelamar'
+// Versi plain text dari mail/applicant_invitation.edge. Dikirim bersamaan dengan
+// versi HTML (multipart/alternative) karena email yang hanya berisi HTML lebih
+// sering ditandai spam. Di plain text url terpaksa ditampilkan utuh.
+const buildInvitationText = ({ firstName, applicantFormUrl, expiresAt }) => [
+  `Halo ${firstName},`,
+  '',
+  'Terima kasih telah melamar di PT Motorsights. Lamaran Anda sudah kami terima. Sebagai langkah berikutnya, mohon lengkapi formulir data pelamar melalui portal karier resmi kami:',
+  '',
+  'Lengkapi Data Pelamar:',
+  applicantFormUrl,
+  '',
+  `Formulir dapat diisi sampai ${expiresAt}. Anda bisa menyimpan dan melanjutkan pengisian kapan saja sebelum mengirimkannya.`,
+  '',
+  `Email ini dikirim otomatis dan tidak dapat dibalas. Untuk pertanyaan, hubungi kami di ${COMPANY_PHONE}.`,
+  '',
+  'Salam,',
+  'Tim Rekrutmen PT Motorsights',
+  '',
+  '--',
+  'PT Motorsights',
+  COMPANY_ADDRESS,
+  `Telp. ${COMPANY_PHONE} · motorsights.com`,
+  '',
+  'Motorsights tidak pernah memungut biaya apa pun dalam proses rekrutmen.'
+].join('\n')
 
 /**
  * HR input nama, email, no_mobile -> generate invitation + token
@@ -118,9 +147,8 @@ const sendInvitationEmail = async (id) => {
 
   const result = await Mail.init()
     .to(invitation.email)
-    .subject(`${firstName}, lanjutkan lamaran Anda di PT Motorsights — lengkapi data pelamar`)
-    // Supaya "balas email ini" langsung masuk ke tim rekrutmen, bukan ke alamat sender sistem
-    .additional({ replyTo: RECRUITMENT_CONTACT_EMAIL })
+    .subject(`${firstName}, lengkapi data pelamar — PT Motorsights`)
+    .additional(RECRUITMENT_REPLY_TO ? { replyTo: RECRUITMENT_REPLY_TO } : {})
     .html('mail/applicant_invitation', {
       data: {
         first_name: firstName,
@@ -128,13 +156,17 @@ const sendInvitationEmail = async (id) => {
         email: invitation.email,
         no_mobile: invitation.no_mobile,
         applicant_form_url: applicantFormUrl,
-        applicant_form_display_url: buildDisplayUrl(invitation.token),
         expires_at: expiresAtFormatted,
-        contact_email: RECRUITMENT_CONTACT_EMAIL,
         company_address: COMPANY_ADDRESS,
-        company_phone: COMPANY_PHONE
+        company_phone: COMPANY_PHONE,
+        company_phone_tel: toTelLink(COMPANY_PHONE)
       }
     })
+    .text(buildInvitationText({
+      firstName,
+      applicantFormUrl,
+      expiresAt: expiresAtFormatted
+    }))
     .send()
 
   if (!result.status) {
