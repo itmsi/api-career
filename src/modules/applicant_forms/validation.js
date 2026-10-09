@@ -82,6 +82,8 @@ const createValidation = [
   optionalString('present_address', 'present_address', { max: MAX_LONG }),
   optionalString('city', 'city', { max: MAX_SHORT }),
   optionalString('place_date_of_birth', 'place_date_of_birth', { max: MAX_SHORT }),
+  optionalString('place_of_birth', 'place_of_birth', { max: MAX_SHORT }),
+  body('date_of_birth').optional({ nullable: true }).isDate().withMessage('date_of_birth harus berupa tanggal yang valid'),
   optionalString('blood_type', 'blood_type', { max: MAX_SHORT }),
   optionalPattern('tax_identification_number', 'tax_identification_number', TAX_ID_PATTERN),
   body('working_available_date').optional({ nullable: true }).isDate().withMessage('working_available_date harus berupa tanggal yang valid'),

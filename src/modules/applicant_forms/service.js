@@ -78,6 +78,8 @@ const buildPayload = async (payload = {}) => ({
   present_address: normalizeOptionalString(payload.present_address),
   city: normalizeOptionalString(payload.city),
   place_date_of_birth: normalizeOptionalString(payload.place_date_of_birth),
+  place_of_birth: normalizeOptionalString(payload.place_of_birth),
+  date_of_birth: normalizeOptionalString(payload.date_of_birth),
   blood_type: normalizeOptionalString(payload.blood_type),
   tax_identification_number: normalizeOptionalString(payload.tax_identification_number),
   working_available_date: normalizeOptionalString(payload.working_available_date),
