@@ -196,6 +196,7 @@ const updateSpeechText = async (payload, user) => {
     speech_text: item.speech_text,
     status_speech_text: item.status_speech_text,
     message_speech_text: item.message_speech_text,
+    updated_at: item.updated_at,
   }));
 };
 

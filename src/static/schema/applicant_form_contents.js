@@ -60,7 +60,8 @@ const applicantFormContentsSchema = {
       file_link_audio: { type: 'string', example: 'https://cloud.motorsights.com/s/AmjNdn8gmC7t96t' },
       speech_text: { type: 'string', nullable: true, example: 'Perkenalkan, nama saya ...' },
       status_speech_text: { type: 'string', nullable: true, example: 'Success' },
-      message_speech_text: { type: 'string', nullable: true, example: 'Transcribe berhasil' }
+      message_speech_text: { type: 'string', nullable: true, example: 'Transcribe berhasil' },
+      updated_at: { type: 'string', format: 'date-time', example: '2026-10-16T07:30:00.000Z' }
     }
   },
   ApplicantFormContentResult: {

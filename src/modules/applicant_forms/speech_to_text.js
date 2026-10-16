@@ -1,18 +1,20 @@
 const axios = require('axios')
 const repository = require('./repository')
-const { publishToRabbitMqQueueSingle } = require('../../config/rabbitmq')
+const { connectRabbitMQ } = require('../../config/rabbitmq')
 const { EXCHANGES } = require('../../utils/constant')
 
 /**
  * Speech to text untuk file audio applicant form.
  *
- * Setelah applicant form dibuat, setiap applicant_form_contents[].file_audio
- * dibuatkan satu antrian RabbitMQ. Consumer (listeners/applicant_form_speech_to_text_listener.js)
- * menandai record applicant_form_contents (file_link_audio = file_audio) sebagai
- * Pending lalu hit API speech to text dengan audio_url = file_audio. Hasil
- * transcript dikirim balik oleh service AI lewat
- * POST /applicant_form_contents/update-stt, jadi respon API di sini tidak diproses.
- * Kalau request ke API gagal, status ditandai Failed.
+ * Alur:
+ * 1. Setelah applicant form dibuat, setiap applicant_form_contents[].file_audio
+ *    dicari record-nya (file_link_audio = file_audio) lalu ditandai Pending.
+ * 2. Baru dibuatkan satu antrian RabbitMQ per file_audio. Kalau pembuatan
+ *    antrian gagal, record ditandai Failed beserta pesan error-nya.
+ * 3. Consumer (listeners/applicant_form_speech_to_text_listener.js) hanya hit
+ *    API speech to text dengan audio_url = file_audio, tanpa mengubah status.
+ * 4. Service AI mengirim hasil transcript & status lewat
+ *    POST /applicant_form_contents/update-stt.
  */
 
 const QUEUE_NAME = EXCHANGES.APPLICANT_FORM_SPEECH_TO_TEXT
@@ -48,6 +50,22 @@ const getAudioLinks = (form = {}) => [
   )
 ]
 
+// Publish satu message dan lempar error kalau gagal, supaya kegagalan
+// pembuatan antrian bisa dicatat ke status_speech_text
+const publishMessage = async (data) => {
+  const { connection, channel } = await connectRabbitMQ()
+  try {
+    await channel.assertExchange(QUEUE_NAME, 'fanout', { durable: true })
+    await channel.assertQueue(QUEUE_NAME, { durable: true })
+    await channel.bindQueue(QUEUE_NAME, QUEUE_NAME)
+    const published = channel.publish(QUEUE_NAME, '', Buffer.from(JSON.stringify(data)), { persistent: true })
+    if (!published) throw new Error('Buffer channel RabbitMQ penuh')
+  } finally {
+    await channel.close().catch(() => {})
+    await connection.close().catch(() => {})
+  }
+}
+
 /**
  * Buat antrian per file_audio (fire-and-forget). Kegagalan hanya di-log /
  * ditandai Failed dan tidak boleh menggagalkan proses create applicant form.
@@ -63,8 +81,14 @@ const publishSpeechToText = (form, token) => {
         continue
       }
 
+      await repository.updateSpeechText(content.id, {
+        status_speech_text: STATUS.PENDING,
+        speech_text: null,
+        message_speech_text: PENDING_MESSAGE
+      })
+
       try {
-        await publishToRabbitMqQueueSingle(QUEUE_NAME, QUEUE_NAME, {
+        await publishMessage({
           applicant_form_id: form.id,
           content_id: content.id,
           audio_url: audioUrl,
@@ -85,25 +109,20 @@ const publishSpeechToText = (form, token) => {
 }
 
 /**
- * Dipanggil consumer untuk setiap message: tandai Pending lalu hit API
- * speech to text. Hasil transcript di-update lewat endpoint /update-stt.
+ * Dipanggil consumer untuk setiap message: hanya hit API speech to text.
+ * Status tidak diubah di sini; hasilnya dikirim service AI lewat /update-stt.
+ * Error request hanya dikembalikan untuk keperluan log.
  */
 const processSpeechToText = async (message = {}) => {
   const { content_id: contentId, audio_url: audioUrl } = message
   if (!contentId || !audioUrl) {
-    return { status: STATUS.FAILED, reason: 'content_id / audio_url kosong' }
+    return { status: 'skipped', reason: 'content_id / audio_url kosong' }
   }
-
-  await repository.updateSpeechText(contentId, {
-    status_speech_text: STATUS.PENDING,
-    speech_text: null,
-    message_speech_text: PENDING_MESSAGE
-  })
 
   const token = process.env.SPEECH_TO_TEXT_TOKEN || message.token
 
   try {
-    await axios.post(
+    const response = await axios.post(
       SPEECH_TO_TEXT_URL,
       { audio_url: audioUrl, async: true },
       {
@@ -115,16 +134,11 @@ const processSpeechToText = async (message = {}) => {
         }
       }
     )
-    return { content_id: contentId, status: STATUS.PENDING }
+    return { content_id: contentId, status: 'sent', response: toMessage(response.data) }
   } catch (error) {
     const reason = error?.response?.data ??
       (error?.code === 'ECONNABORTED' ? `Timeout ${REQUEST_TIMEOUT_MS / 60000} menit` : error?.message || String(error))
-
-    await repository.updateSpeechText(contentId, {
-      status_speech_text: STATUS.FAILED,
-      message_speech_text: toMessage(reason)
-    })
-    return { content_id: contentId, status: STATUS.FAILED, error: toMessage(reason) }
+    return { content_id: contentId, status: 'error', error: toMessage(reason) }
   }
 }
 
