@@ -1,14 +1,12 @@
 const { logger, logDateFormat, fullDateFormat } = require('../utils')
 const { initEmailServices } = require('./email_listener')
 const { initApplicantFormFileServices } = require('./applicant_form_file_listener')
-const { initApplicantFormSpeechToTextServices } = require('./applicant_form_speech_to_text_listener')
 
 // Setiap listener dijalankan terpisah, supaya kalau satu gagal (mis. RabbitMQ
 // belum siap saat container start) listener lain tetap jalan
 const LISTENERS = [
   ['email', initEmailServices],
-  ['applicant_form_files', initApplicantFormFileServices],
-  ['applicant_form_speech_to_text', initApplicantFormSpeechToTextServices]
+  ['applicant_form_files', initApplicantFormFileServices]
 ]
 
 const initListener = async () => {

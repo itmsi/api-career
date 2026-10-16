@@ -326,8 +326,7 @@ module.exports = {
     PRINT_CATALOG: 'exchanges-print-catalog',
     IMAGE_KTP: 'exchanges-ktp-processing',
     PUBLISH_CATALOG: 'exchanges-publish-catalog',
-    APPLICANT_FORM_FILES: 'exchanges-applicant-form-files',
-    APPLICANT_FORM_SPEECH_TO_TEXT: 'exchanges-applicant-form-speech-to-text'
+    APPLICANT_FORM_FILES: 'exchanges-applicant-form-files'
   },
   ACTION_TRX: {
     INSERT: 'insert',
