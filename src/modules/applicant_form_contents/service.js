@@ -156,6 +156,49 @@ const updateContent = async (id, payload, files, user) => {
   return buildResult(data);
 };
 
+const SPEECH_TEXT_MESSAGE_MAX_LENGTH = 2000;
+
+const truncateMessage = (value) => {
+  if (value === undefined || value === null) return null;
+  const text = typeof value === "string" ? value : JSON.stringify(value);
+  return text.length > SPEECH_TEXT_MESSAGE_MAX_LENGTH
+    ? `${text.slice(0, SPEECH_TEXT_MESSAGE_MAX_LENGTH - 3)}...`
+    : text;
+};
+
+// Callback hasil speech to text: update content berdasarkan file_link_audio
+const updateSpeechText = async (payload, user) => {
+  const fileLinkAudio = normalizeOptionalString(payload.file_link_audio);
+  const data = { updated_by: getRequesterId(user) };
+
+  if (payload.speech_text !== undefined) {
+    data.speech_text = payload.speech_text ?? null;
+  }
+  if (payload.status_speech_text !== undefined) {
+    data.status_speech_text = normalizeOptionalString(payload.status_speech_text);
+  }
+  if (payload.message_speech_text !== undefined) {
+    data.message_speech_text = truncateMessage(payload.message_speech_text);
+  }
+
+  const updated = await repository.updateSpeechTextByAudioLink(
+    fileLinkAudio,
+    data,
+  );
+  if (!updated.length) {
+    throw { message: "Data content tidak ditemukan", statusCode: 404 };
+  }
+
+  return updated.map((item) => ({
+    id: item.id,
+    applicant_form_id: item.applicant_form_id,
+    file_link_audio: item.file_link_audio,
+    speech_text: item.speech_text,
+    status_speech_text: item.status_speech_text,
+    message_speech_text: item.message_speech_text,
+  }));
+};
+
 const deleteContent = async (id, user) => {
   const existing = await repository.findById(id);
   if (!existing) {
@@ -177,5 +220,6 @@ module.exports = {
   getContentById,
   createContent,
   updateContent,
+  updateSpeechText,
   deleteContent,
 };

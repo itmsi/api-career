@@ -4,6 +4,7 @@ const controller = require('./controller')
 const {
   createValidation,
   updateValidation,
+  updateSpeechTextValidation,
   getByIdValidation,
   getListValidation
 } = require('./validation')
@@ -26,6 +27,14 @@ router.post(
   createValidation,
   validateMiddleware,
   controller.create
+)
+
+router.post(
+  '/update-stt',
+  verifyToken,
+  updateSpeechTextValidation,
+  validateMiddleware,
+  controller.updateSpeechText
 )
 
 router.put(

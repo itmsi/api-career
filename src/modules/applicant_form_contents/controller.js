@@ -39,6 +39,15 @@ const update = async (req, res) => {
   }
 }
 
+const updateSpeechText = async (req, res) => {
+  try {
+    const data = await service.updateSpeechText(req.body, req.user)
+    return successResponse(res, data, 'Speech to text berhasil diupdate')
+  } catch (error) {
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+  }
+}
+
 const remove = async (req, res) => {
   try {
     const { id } = req.params
@@ -54,5 +63,6 @@ module.exports = {
   getById,
   create,
   update,
+  updateSpeechText,
   remove
 }

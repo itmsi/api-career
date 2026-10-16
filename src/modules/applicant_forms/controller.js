@@ -1,4 +1,5 @@
 const service = require('./service')
+const { publishSpeechToText } = require('./speech_to_text')
 const invitationService = require('../applicant_invitations/service')
 const { successResponse, errorResponse } = require('../../utils/response')
 
@@ -29,6 +30,10 @@ const create = async (req, res) => {
     if (req.applicantFormToken) {
       await invitationService.completeInvitation(req.applicantFormToken, data.id)
     }
+
+    // Setelah semua proses selesai: buat antrian speech to text per file_audio
+    // (fire-and-forget, tidak menunda / menggagalkan response)
+    publishSpeechToText(data, req.applicantFormToken)
 
     return successResponse(res, data, 'Data applicant form berhasil dibuat', 201)
   } catch (error) {

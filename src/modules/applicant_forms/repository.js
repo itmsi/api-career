@@ -417,6 +417,16 @@ const linkContentsToForm = async (videoLinks, applicantFormId) => {
     .update({ applicant_form_id: applicantFormId, updated_at: pgCore.fn.now() })
 }
 
+// Dipakai proses antrian speech to text (lihat ./speech_to_text.js)
+const updateSpeechText = async (contentId, data = {}) => {
+  return await pgCore('applicant_form_contents')
+    .where({ id: contentId })
+    .update({
+      ...data,
+      updated_at: pgCore.fn.now()
+    })
+}
+
 const updateNextcloudPath = async (tableName, id, column, nextcloudPath) => {
   return await pgCore(tableName)
     .where({ id })
@@ -441,5 +451,6 @@ module.exports = {
   linkSignaturesToForm,
   linkFilesToForm,
   linkContentsToForm,
+  updateSpeechText,
   updateNextcloudPath
 }

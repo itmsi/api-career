@@ -23,6 +23,8 @@ const SELECT_COLUMNS = [
   "nextcloud_path_audio",
   "file_link_audio",
   "speech_text",
+  "status_speech_text",
+  "message_speech_text",
   "created_at",
   "created_by",
   "updated_at",
@@ -128,6 +130,20 @@ const update = async (id, data = {}) => {
   return await findById(updated.id);
 };
 
+// Dipakai POST /update-stt: update hasil speech to text untuk semua content
+// yang file_link_audio-nya sama
+const updateSpeechTextByAudioLink = async (fileLinkAudio, data = {}) => {
+  const updated = await pgCore(TABLE_NAME)
+    .where({ file_link_audio: fileLinkAudio, deleted_at: null })
+    .update({
+      ...data,
+      updated_at: pgCore.fn.now(),
+    })
+    .returning(SELECT_COLUMNS);
+
+  return updated;
+};
+
 const remove = async (id, deletedBy) => {
   const [updated] = await pgCore(TABLE_NAME)
     .where({ id, deleted_at: null })
@@ -147,5 +163,6 @@ module.exports = {
   findById,
   create,
   update,
+  updateSpeechTextByAudioLink,
   remove,
 };

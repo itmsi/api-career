@@ -216,6 +216,15 @@ APPLICANT_FORM_TOKEN_EXPIRES_IN=14d
 APPLICANT_FORM_URL=https://career.motorsights.com/applicant-form
 
 # ===========================================
+# Speech To Text (antrian file audio applicant form)
+# ===========================================
+SPEECH_TO_TEXT_URL=https://dev-api-mosa.motorsights.com/api/mosa/ai-assistant/speech-to-text
+# Bearer token API speech to text. Kosong = pakai token undangan applicant-form dari request create
+SPEECH_TO_TEXT_TOKEN=
+# Jumlah antrian yang diproses bersamaan
+SPEECH_TO_TEXT_CONCURRENCY=1
+
+# ===========================================
 # Localization Configuration
 # ===========================================
 TIMEZONE=Asia/Jakarta

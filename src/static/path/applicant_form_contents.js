@@ -115,6 +115,45 @@ const applicantFormContentsPaths = {
       }
     }
   },
+  '/applicant_form_contents/update-stt': {
+    post: {
+      tags: ['Applicant Form Contents'],
+      summary: 'Update hasil speech to text',
+      description: 'Update speech_text, status_speech_text dan message_speech_text untuk content yang file_link_audio-nya sama. Field selain file_link_audio opsional; yang tidak dikirim tidak diubah. message_speech_text dipotong maksimal 2000 karakter.',
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ApplicantFormContentSpeechTextInput' }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: 'Speech to text berhasil diupdate',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  message: { type: 'string', example: 'Speech to text berhasil diupdate' },
+                  data: {
+                    type: 'array',
+                    items: { $ref: '#/components/schemas/ApplicantFormContentSpeechTextResult' }
+                  }
+                }
+              }
+            }
+          }
+        },
+        400: errorResponse('Validation error'),
+        401: errorResponse('Unauthorized'),
+        404: errorResponse('Content dengan file_link_audio tsb tidak ditemukan')
+      }
+    }
+  },
   '/applicant_form_contents/{id}': {
     get: {
       tags: ['Applicant Form Contents'],

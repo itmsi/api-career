@@ -52,6 +52,27 @@ const updateValidation = [
   ...contentFieldsValidation,
 ];
 
+const updateSpeechTextValidation = [
+  body("file_link_audio")
+    .notEmpty()
+    .withMessage("file_link_audio wajib diisi")
+    .isString()
+    .withMessage("file_link_audio harus berupa teks")
+    .trim(),
+  body("speech_text")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("speech_text harus berupa teks"),
+  body("status_speech_text")
+    .optional({ nullable: true })
+    .isIn(["Pending", "Success", "Failed"])
+    .withMessage("status_speech_text harus Pending, Success, atau Failed"),
+  body("message_speech_text")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("message_speech_text harus berupa teks"),
+];
+
 const getByIdValidation = [
   param("id")
     .notEmpty()
@@ -83,6 +104,7 @@ const getListValidation = [
 module.exports = {
   createValidation,
   updateValidation,
+  updateSpeechTextValidation,
   getByIdValidation,
   getListValidation,
 };
