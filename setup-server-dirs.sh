@@ -23,7 +23,7 @@ print_warning() {
 
 # Create logs directory structure
 print_status "Creating logs directory structure..."
-mkdir -p logs/listener logs/upload logs/email logs/queue logs/mail logs/image-ktp logs/pdf logs/excel
+mkdir -p logs/listener logs/upload logs/email logs/queue logs/mail logs/image-ktp logs/pdf logs/excel logs/application logs/applicant_form_files logs/applicant_form_speech_to_text
 
 # Create public directories
 print_status "Creating public directories..."

@@ -44,7 +44,7 @@ if [ -f "./setup-server-dirs.sh" ]; then
     ./setup-server-dirs.sh
 else
     print_warning "setup-server-dirs.sh not found, creating directories manually..."
-    mkdir -p logs/listener logs/upload logs/email logs/queue logs/mail logs/image-ktp logs/pdf logs/excel
+    mkdir -p logs/listener logs/upload logs/email logs/queue logs/mail logs/image-ktp logs/pdf logs/excel logs/application logs/applicant_form_files logs/applicant_form_speech_to_text
     mkdir -p public/pdf public/excel
     mkdir -p storages/tmp
     chmod -R 755 logs public storages
