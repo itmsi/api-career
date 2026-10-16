@@ -20,7 +20,10 @@ const ALLOWED_MIME_TYPES = {
     'audio/ogg',
     'audio/aac',
     'audio/mp4',
-    'audio/x-m4a'
+    'audio/x-m4a',
+    // Rekaman audio dari browser (MediaRecorder) berformat .webm sering
+    // terdeteksi sebagai video/webm walaupun isinya hanya audio
+    'video/webm'
   ]
 }
 
