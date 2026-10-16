@@ -25,6 +25,10 @@ const REQUEST_TIMEOUT_MS = 15 * 60 * 1000
 const MESSAGE_MAX_LENGTH = 2000
 const PENDING_MESSAGE = 'on proses AI Speech To Text'
 
+const LOG_PREFIX = '[STT]'
+const logInfo = (...args) => console.info(LOG_PREFIX, ...args)
+const logError = (...args) => console.error(LOG_PREFIX, ...args)
+
 const STATUS = {
   PENDING: 'Pending',
   SUCCESS: 'Success',
@@ -71,13 +75,19 @@ const publishMessage = async (data) => {
  * ditandai Failed dan tidak boleh menggagalkan proses create applicant form.
  */
 const publishSpeechToText = (form, token) => {
-  if (!isRabbitMqEnabled()) return
+  if (!isRabbitMqEnabled()) {
+    logInfo(`[PUBLISH][SKIP] RabbitMQ tidak aktif, antrian untuk applicant_form_id=${form?.id} tidak dibuat`)
+    return
+  }
 
   const run = async () => {
-    for (const audioUrl of getAudioLinks(form)) {
+    const audioLinks = getAudioLinks(form)
+    logInfo(`[PUBLISH] applicant_form_id=${form?.id} jumlah file_audio=${audioLinks.length}`)
+
+    for (const audioUrl of audioLinks) {
       const content = await repository.findContentByLink('audio', audioUrl)
       if (!content) {
-        console.info(`Speech to text di-skip, content dengan file_link_audio ${audioUrl} tidak ditemukan`)
+        logInfo(`[PUBLISH][SKIP] content dengan file_link_audio=${audioUrl} tidak ditemukan`)
         continue
       }
 
@@ -94,7 +104,9 @@ const publishSpeechToText = (form, token) => {
           audio_url: audioUrl,
           token: token || null
         })
+        logInfo(`[PUBLISH][QUEUED] content_id=${content.id} audio_url=${audioUrl} queue=${QUEUE_NAME}`)
       } catch (error) {
+        logError(`[PUBLISH][FAILED] content_id=${content.id} audio_url=${audioUrl}: ${error?.message || error}`)
         await repository.updateSpeechText(content.id, {
           status_speech_text: STATUS.FAILED,
           message_speech_text: toMessage(`Gagal membuat antrian: ${error?.message || error}`)
@@ -104,7 +116,7 @@ const publishSpeechToText = (form, token) => {
   }
 
   run().catch((error) => {
-    console.error(`Gagal publish ${QUEUE_NAME} untuk applicant form ${form?.id}:`, error?.message || error)
+    logError(`[PUBLISH][ERROR] applicant_form_id=${form?.id}: ${error?.message || error}`)
   })
 }
 
@@ -116,10 +128,13 @@ const publishSpeechToText = (form, token) => {
 const processSpeechToText = async (message = {}) => {
   const { content_id: contentId, audio_url: audioUrl } = message
   if (!contentId || !audioUrl) {
+    logInfo('[HIT][SKIP] content_id / audio_url kosong', JSON.stringify(message))
     return { status: 'skipped', reason: 'content_id / audio_url kosong' }
   }
 
   const token = process.env.SPEECH_TO_TEXT_TOKEN || message.token
+  const startedAt = Date.now()
+  logInfo(`[HIT][START] content_id=${contentId} POST ${SPEECH_TO_TEXT_URL} audio_url=${audioUrl} token=${token ? 'ada' : 'kosong'}`)
 
   try {
     const response = await axios.post(
@@ -134,11 +149,14 @@ const processSpeechToText = async (message = {}) => {
         }
       }
     )
-    return { content_id: contentId, status: 'sent', response: toMessage(response.data) }
+    logInfo(`[HIT][SUCCESS] content_id=${contentId} http=${response.status} durasi=${Date.now() - startedAt}ms respon=${toMessage(response.data)}`)
+    return { content_id: contentId, status: 'sent', http_status: response.status, response: toMessage(response.data) }
   } catch (error) {
     const reason = error?.response?.data ??
       (error?.code === 'ECONNABORTED' ? `Timeout ${REQUEST_TIMEOUT_MS / 60000} menit` : error?.message || String(error))
-    return { content_id: contentId, status: 'error', error: toMessage(reason) }
+    const httpStatus = error?.response?.status ?? null
+    logError(`[HIT][FAILED] content_id=${contentId} http=${httpStatus ?? '-'} durasi=${Date.now() - startedAt}ms error=${toMessage(reason)}`)
+    return { content_id: contentId, status: 'error', http_status: httpStatus, error: toMessage(reason) }
   }
 }
 

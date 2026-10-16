@@ -29,13 +29,14 @@ const initApplicantFormSpeechToTextServices = async () => {
       QUEUE_NAME,
       async (msg) => {
         if (!msg) return;
-        console.info(`Processing data ${msg?.fields?.consumerTag}`);
         try {
           const parseData = JSON.parse(msg.content.toString());
+          console.info(`[STT] [CONSUME][RECEIVED] content_id=${parseData?.content_id} applicant_form_id=${parseData?.applicant_form_id} redelivered=${msg.fields?.redelivered}`);
           const result = await processSpeechToText(parseData);
           writeLog(result?.status || "Done", JSON.stringify({ applicant_form_id: parseData?.applicant_form_id, ...result }));
+          console.info(`[STT] [CONSUME][DONE] content_id=${parseData?.content_id} status=${result?.status}`);
         } catch (error) {
-          console.info("error job", error);
+          console.error("[STT] [CONSUME][ERROR]", error?.message || error);
           writeLog("Failed", `${error?.message || error}`);
         }
         channel.ack(msg);
@@ -45,6 +46,7 @@ const initApplicantFormSpeechToTextServices = async () => {
         consumerTag: `consumer_${QUEUE_NAME}`,
       },
     );
+    console.info(`[STT] [CONSUME][READY] listener aktif, menunggu antrian ${QUEUE_NAME}`);
   } catch (error) {
     console.info(error);
     writeLog("Error", `${error} - ${error.toString()}`);
