@@ -14,21 +14,27 @@ const optionalTextField = (field, max) =>
     .isLength({ max })
     .withMessage(`${field} maksimal ${max} karakter`);
 
-// id_question dikirim lewat multipart, jadi string kosong / 'null' dianggap null
-const questionIdValidation = body("id_question")
-  .optional({ nullable: true })
-  .custom((value) => {
-    if (typeof value !== "string")
-      throw new Error("id_question harus berupa UUID");
-    const trimmed = value.trim();
-    if (["", "null", "nan"].includes(trimmed)) return true;
-    if (!UUID_REGEX.test(trimmed))
-      throw new Error("Format id_question tidak valid");
-    return true;
-  });
+// Field uuid dikirim lewat multipart, jadi string kosong / 'null' dianggap null
+const optionalUuidField = (field) =>
+  body(field)
+    .optional({ nullable: true })
+    .custom((value) => {
+      if (typeof value !== "string")
+        throw new Error(`${field} harus berupa UUID`);
+      const trimmed = value.trim();
+      if (["", "null", "nan"].includes(trimmed)) return true;
+      if (!UUID_REGEX.test(trimmed))
+        throw new Error(`Format ${field} tidak valid`);
+      return true;
+    });
 
 const contentFieldsValidation = [
-  questionIdValidation,
+  optionalUuidField("applicant_form_id"),
+  optionalUuidField("id_question"),
+  body("speech_text")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("speech_text harus berupa teks"),
   optionalTextField("file_title_video", MAX_TITLE),
   optionalTextField("file_type_video", MAX_TYPE),
   optionalTextField("file_title_audio", MAX_TITLE),

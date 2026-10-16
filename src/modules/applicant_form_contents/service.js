@@ -41,6 +41,7 @@ const uploadContentFile = async (kind, file) => {
 const getUploadedFile = (files, kind) => files?.[`file_${kind}`]?.[0] || null;
 
 const buildResult = (data) => ({
+  applicant_form_id: data.applicant_form_id,
   id_question: data.id_question,
   file_title_video: data.file_title_video,
   file_type_video: data.file_type_video,
@@ -48,6 +49,7 @@ const buildResult = (data) => ({
   file_title_audio: data.file_title_audio,
   file_type_audio: data.file_type_audio,
   file_audio: data.file_link_audio,
+  speech_text: data.speech_text,
 });
 
 const getContents = async (params) => {
@@ -65,7 +67,9 @@ const getContentById = async (id) => {
 const createContent = async (payload, files, user) => {
   const authorId = getRequesterId(user);
   const data = {
+    applicant_form_id: normalizeOptionalString(payload.applicant_form_id),
     id_question: normalizeOptionalString(payload.id_question),
+    speech_text: normalizeOptionalString(payload.speech_text),
   };
 
   for (const kind of MEDIA_KINDS) {
@@ -107,8 +111,10 @@ const updateContent = async (id, payload, files, user) => {
   const data = { ...existing };
   const oldNextcloudPaths = [];
 
-  if (payload.id_question !== undefined) {
-    data.id_question = normalizeOptionalString(payload.id_question);
+  for (const field of ["applicant_form_id", "id_question", "speech_text"]) {
+    if (payload[field] !== undefined) {
+      data[field] = normalizeOptionalString(payload[field]);
+    }
   }
 
   for (const kind of MEDIA_KINDS) {

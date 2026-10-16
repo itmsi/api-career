@@ -390,6 +390,33 @@ const findContentByLink = async (kind, link) => {
     .first()
 }
 
+// Tandai record upload (signature/files/contents) milik applicant form tertentu.
+// Hanya record yang link-nya ada di tabel tsb yang ter-update; link yang tidak
+// ditemukan otomatis diabaikan.
+const linkSignaturesToForm = async (links, applicantFormId) => {
+  if (!links.length) return 0
+  return await pgCore('applicant_form_signatures')
+    .whereIn('signature_link', links)
+    .where({ deleted_at: null })
+    .update({ applicant_form_id: applicantFormId, updated_at: pgCore.fn.now() })
+}
+
+const linkFilesToForm = async (links, applicantFormId) => {
+  if (!links.length) return 0
+  return await pgCore('applicant_form_files')
+    .whereIn('file_link', links)
+    .where({ deleted_at: null })
+    .update({ applicant_form_id: applicantFormId, updated_at: pgCore.fn.now() })
+}
+
+const linkContentsToForm = async (videoLinks, applicantFormId) => {
+  if (!videoLinks.length) return 0
+  return await pgCore('applicant_form_contents')
+    .whereIn('file_link_video', videoLinks)
+    .where({ deleted_at: null })
+    .update({ applicant_form_id: applicantFormId, updated_at: pgCore.fn.now() })
+}
+
 const updateNextcloudPath = async (tableName, id, column, nextcloudPath) => {
   return await pgCore(tableName)
     .where({ id })
@@ -411,5 +438,8 @@ module.exports = {
   findSignatureByLink,
   findFileByLink,
   findContentByLink,
+  linkSignaturesToForm,
+  linkFilesToForm,
+  linkContentsToForm,
   updateNextcloudPath
 }

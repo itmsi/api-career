@@ -10,6 +10,7 @@ const TABLE_NAME = "applicant_form_contents";
 
 const SELECT_COLUMNS = [
   "id",
+  "applicant_form_id",
   "id_question",
   "file_title_video",
   "file_type_video",
@@ -21,6 +22,7 @@ const SELECT_COLUMNS = [
   "file_name_audio",
   "nextcloud_path_audio",
   "file_link_audio",
+  "speech_text",
   "created_at",
   "created_by",
   "updated_at",
@@ -31,6 +33,7 @@ const SELECT_COLUMNS = [
 ];
 
 const CONTENT_COLUMNS = [
+  "applicant_form_id",
   "id_question",
   "file_title_video",
   "file_type_video",
@@ -42,6 +45,7 @@ const CONTENT_COLUMNS = [
   "file_name_audio",
   "nextcloud_path_audio",
   "file_link_audio",
+  "speech_text",
 ];
 
 const ALLOWED_SORT_COLUMNS = ["created_at"];
