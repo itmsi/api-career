@@ -29,6 +29,23 @@ const LOG_PREFIX = '[STT]'
 const logInfo = (...args) => console.info(LOG_PREFIX, ...args)
 const logError = (...args) => console.error(LOG_PREFIX, ...args)
 
+// Batas panjang body respon yang dicetak di log, supaya log tidak membengkak
+const LOG_RESPONSE_MAX_LENGTH = 10000
+
+const formatResponseBody = (body) => {
+  if (body === undefined || body === null || body === '') return '(kosong)'
+  const text = typeof body === 'string' ? body : JSON.stringify(body, null, 2)
+  return text.length > LOG_RESPONSE_MAX_LENGTH
+    ? `${text.slice(0, LOG_RESPONSE_MAX_LENGTH)}\n... (dipotong, total ${text.length} karakter)`
+    : text
+}
+
+const logResponse = (contentId, { status, statusText, body, errorCode }) => {
+  const http = status ? `${status} ${statusText || ''}`.trim() : '-'
+  const code = errorCode ? ` error_code=${errorCode}` : ''
+  console.info(`${LOG_PREFIX} [HIT][RESPONSE] content_id=${contentId} http=${http}${code}\n${formatResponseBody(body)}`)
+}
+
 const STATUS = {
   PENDING: 'Pending',
   SUCCESS: 'Success',
@@ -149,12 +166,19 @@ const processSpeechToText = async (message = {}) => {
         }
       }
     )
-    logInfo(`[HIT][SUCCESS] content_id=${contentId} http=${response.status} durasi=${Date.now() - startedAt}ms respon=${toMessage(response.data)}`)
+    logResponse(contentId, { status: response.status, statusText: response.statusText, body: response.data })
+    logInfo(`[HIT][SUCCESS] content_id=${contentId} http=${response.status} durasi=${Date.now() - startedAt}ms`)
     return { content_id: contentId, status: 'sent', http_status: response.status, response: toMessage(response.data) }
   } catch (error) {
     const reason = error?.response?.data ??
       (error?.code === 'ECONNABORTED' ? `Timeout ${REQUEST_TIMEOUT_MS / 60000} menit` : error?.message || String(error))
     const httpStatus = error?.response?.status ?? null
+    logResponse(contentId, {
+      status: httpStatus,
+      statusText: error?.response?.statusText,
+      body: error?.response?.data ?? error?.message,
+      errorCode: error?.code
+    })
     logError(`[HIT][FAILED] content_id=${contentId} http=${httpStatus ?? '-'} durasi=${Date.now() - startedAt}ms error=${toMessage(reason)}`)
     return { content_id: contentId, status: 'error', http_status: httpStatus, error: toMessage(reason) }
   }
