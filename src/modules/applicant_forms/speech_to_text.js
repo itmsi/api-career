@@ -148,6 +148,8 @@ const runSpeechToText = (form, token) => {
 module.exports = {
   STATUS,
   MESSAGE_MAX_LENGTH,
+  PENDING_MESSAGE,
   toMessage,
+  hitSpeechToText,
   runSpeechToText
 }

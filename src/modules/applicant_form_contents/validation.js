@@ -100,6 +100,7 @@ const getListValidation = [
     .isInt({ min: 1, max: 100 })
     .withMessage("Limit harus antara 1-100"),
   body("search").optional().isString().withMessage("Search harus berupa teks"),
+  optionalUuidField("applicant_form_id"),
   body("sort_by")
     .optional()
     .isIn(["created_at"])

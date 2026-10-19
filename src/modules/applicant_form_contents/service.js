@@ -7,6 +7,12 @@ const {
   generateShareLink,
   NEXTCLOUD_UPLOAD_DIR,
 } = require("../../utils/nextcloud");
+const {
+  STATUS: SPEECH_TEXT_STATUS,
+  PENDING_MESSAGE: SPEECH_TEXT_PENDING_MESSAGE,
+  toMessage: toSpeechTextMessage,
+  hitSpeechToText,
+} = require("../applicant_forms/speech_to_text");
 
 const FILE_DIR = `${NEXTCLOUD_UPLOAD_DIR}/ApplicantContents`;
 
@@ -64,15 +70,7 @@ const getContentById = async (id) => {
   return data;
 };
 
-const getContentByAudioLink = async (fileLinkAudio) => {
-  const data = await repository.findByAudioLink(
-    normalizeOptionalString(fileLinkAudio),
-  );
-  if (!data) {
-    throw { message: "Data content tidak ditemukan", statusCode: 404 };
-  }
-
-  return {
+const buildAudioResult = (data) => ({
     id: data.id,
     applicant_form_id: data.applicant_form_id,
     id_question: data.id_question,
@@ -84,7 +82,56 @@ const getContentByAudioLink = async (fileLinkAudio) => {
     speech_text: data.speech_text,
     status_speech_text: data.status_speech_text,
     message_speech_text: data.message_speech_text,
-  };
+});
+
+const getContentByAudioLink = async (fileLinkAudio) => {
+  const data = await repository.findByAudioLink(
+    normalizeOptionalString(fileLinkAudio),
+  );
+  if (!data) {
+    throw { message: "Data content tidak ditemukan", statusCode: 404 };
+  }
+
+  return buildAudioResult(data);
+};
+
+// Proses ulang speech to text satu audio: tandai Pending, lalu hit API
+// speech to text di background. Hasil transcript dikirim service AI lewat
+// POST /update-stt
+const processSpeechText = async (fileLinkAudio, user, token) => {
+  const existing = await repository.findByAudioLink(
+    normalizeOptionalString(fileLinkAudio),
+  );
+  if (!existing) {
+    throw { message: "Data content tidak ditemukan", statusCode: 404 };
+  }
+
+  const updated = await repository.updateSpeechTextById(existing.id, {
+    speech_text: null,
+    status_speech_text: SPEECH_TEXT_STATUS.PENDING,
+    message_speech_text: SPEECH_TEXT_PENDING_MESSAGE,
+    updated_by: getRequesterId(user),
+  });
+
+  const authToken = process.env.SPEECH_TO_TEXT_TOKEN || token;
+  hitSpeechToText(existing.id, existing.file_link_audio, authToken)
+    .then(async (result) => {
+      if (result.ok) return;
+      const httpInfo = result.httpStatus ? ` (HTTP ${result.httpStatus})` : "";
+      await repository.updateSpeechTextById(existing.id, {
+        status_speech_text: SPEECH_TEXT_STATUS.FAILED,
+        message_speech_text: toSpeechTextMessage(
+          `Gagal hit API speech to text${httpInfo}: ${toSpeechTextMessage(result.reason)}`,
+        ),
+      });
+    })
+    .catch((error) => {
+      console.error(
+        `[STT] [PROCESS][ERROR] content_id=${existing.id}: ${error?.message || error}`,
+      );
+    });
+
+  return buildAudioResult(updated);
 };
 
 const createContent = async (payload, files, user) => {
@@ -243,6 +290,7 @@ module.exports = {
   getContents,
   getContentById,
   getContentByAudioLink,
+  processSpeechText,
   createContent,
   updateContent,
   updateSpeechText,

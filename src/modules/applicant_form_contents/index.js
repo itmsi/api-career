@@ -46,6 +46,14 @@ router.get(
   controller.getByAudioLink
 )
 
+router.post(
+  '/audio/:file_link_audio',
+  verifyToken,
+  getByAudioLinkValidation,
+  validateMiddleware,
+  controller.processSpeechText
+)
+
 router.put(
   '/:id',
   verifyToken,

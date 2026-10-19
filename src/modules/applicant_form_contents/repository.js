@@ -58,6 +58,17 @@ const SEARCHABLE_COLUMNS = [
   "file_type_audio",
 ];
 
+const ALLOWED_FILTERS = ["applicant_form_id"];
+
+// Nilai kosong ("", "null", "nan", null) dianggap tidak memfilter
+const normalizeFilterValue = (value) => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (["", "null", "nan"].includes(trimmed.toLowerCase())) return undefined;
+  return trimmed;
+};
+
 const pickContentColumns = (data = {}) =>
   CONTENT_COLUMNS.reduce((acc, column) => {
     acc[column] = data[column] ?? null;
@@ -66,11 +77,17 @@ const pickContentColumns = (data = {}) =>
 
 const findAll = async (params = {}) => {
   const queryParams = parseStandardQuery(
-    { body: params },
+    {
+      body: {
+        ...params,
+        applicant_form_id: normalizeFilterValue(params.applicant_form_id),
+      },
+    },
     {
       allowedColumns: ALLOWED_SORT_COLUMNS,
       defaultOrder: ["created_at", "desc"],
       searchableColumns: SEARCHABLE_COLUMNS,
+      allowedFilters: ALLOWED_FILTERS,
       fromBody: true,
     },
   );
@@ -161,6 +178,19 @@ const updateSpeechTextByAudioLink = async (fileLinkAudio, data = {}) => {
   return updated;
 };
 
+// Dipakai POST /audio/:file_link_audio: update status speech to text satu content
+const updateSpeechTextById = async (id, data = {}) => {
+  const [updated] = await pgCore(TABLE_NAME)
+    .where({ id, deleted_at: null })
+    .update({
+      ...data,
+      updated_at: pgCore.fn.now(),
+    })
+    .returning(SELECT_COLUMNS);
+
+  return updated || null;
+};
+
 const remove = async (id, deletedBy) => {
   const [updated] = await pgCore(TABLE_NAME)
     .where({ id, deleted_at: null })
@@ -182,5 +212,6 @@ module.exports = {
   create,
   update,
   updateSpeechTextByAudioLink,
+  updateSpeechTextById,
   remove,
 };

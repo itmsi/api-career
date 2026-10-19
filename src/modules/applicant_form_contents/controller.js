@@ -30,6 +30,17 @@ const getByAudioLink = async (req, res) => {
   }
 }
 
+const processSpeechText = async (req, res) => {
+  try {
+    const { file_link_audio } = req.params
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || null
+    const data = await service.processSpeechText(file_link_audio, req.user, token)
+    return successResponse(res, data)
+  } catch (error) {
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+  }
+}
+
 const create = async (req, res) => {
   try {
     const data = await service.createContent(req.body, req.files, req.user)
@@ -72,6 +83,7 @@ module.exports = {
   getList,
   getById,
   getByAudioLink,
+  processSpeechText,
   create,
   update,
   updateSpeechText,

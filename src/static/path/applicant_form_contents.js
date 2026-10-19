@@ -52,6 +52,13 @@ const applicantFormContentsPaths = {
                 page: { type: 'integer', example: 1 },
                 limit: { type: 'integer', example: 10 },
                 search: { type: 'string', example: '' },
+                applicant_form_id: {
+                  type: 'string',
+                  format: 'uuid',
+                  nullable: true,
+                  description: 'Filter berdasarkan applicant_form_id. null, string kosong, "null" atau "nan" berarti tidak difilter',
+                  example: ''
+                },
                 sort_by: { type: 'string', example: 'created_at' },
                 sort_order: { type: 'string', example: 'desc' }
               }
@@ -181,6 +188,57 @@ const applicantFormContentsPaths = {
                   message: { type: 'string', example: 'Success' },
                   data: { $ref: '#/components/schemas/ApplicantFormContentAudio' },
                   timestamp: { type: 'string', format: 'date-time', example: '2026-10-19T01:59:11.842Z' }
+                }
+              }
+            }
+          }
+        },
+        400: errorResponse('Validation error'),
+        401: errorResponse('Unauthorized'),
+        404: errorResponse('Content dengan file_link_audio tsb tidak ditemukan')
+      }
+    },
+    post: {
+      tags: ['Applicant Form Contents'],
+      summary: 'Proses speech to text berdasarkan file_link_audio',
+      description: 'Tandai content sebagai Pending (speech_text dikosongkan), lalu hit API speech to text (POST {SPEECH_TO_TEXT_URL} dengan audio_url = file_link_audio) di background. Response langsung dikembalikan dengan status Pending; hasil transcript dikirim service AI lewat POST /applicant_form_contents/update-stt. Kalau hit API gagal, status berubah menjadi Failed beserta pesan error-nya. Parameter bisa berupa link lengkap (di-URL-encode) atau token share-nya saja. Token API speech to text memakai SPEECH_TO_TEXT_TOKEN, atau Bearer token request kalau env tidak diisi.',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'file_link_audio',
+          in: 'path',
+          required: true,
+          description: 'file_link_audio (URL-encoded) atau token share Nextcloud',
+          schema: { type: 'string', example: 'Ja5WwrTnDHsWjPk' }
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Speech to text sedang diproses',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  message: { type: 'string', example: 'Success' },
+                  data: {
+                    allOf: [{ $ref: '#/components/schemas/ApplicantFormContentAudio' }],
+                    example: {
+                      id: '2618a26e-7581-4df7-9323-856ef6be471e',
+                      applicant_form_id: '4509a494-0c6d-45ad-88fb-47f4eb7f0f70',
+                      id_question: '2aa0963e-b2d2-44f7-adc8-87ec0a6255d2',
+                      file_title_audio: 'Rekaman Suara2',
+                      file_type_audio: 'audio',
+                      file_name_audio: 'audio-1792134483181-91a1b143-dd02-469a-b426-dbffb302ef34.webm',
+                      nextcloud_path_audio: '/HRMS/applicantForms/feby@mail.com_feby/applicant_form_contents/audio-1792134483181-91a1b143-dd02-469a-b426-dbffb302ef34.webm',
+                      file_link_audio: 'https://cloud.inlinegroupdc.com/s/Ja5WwrTnDHsWjPk',
+                      speech_text: null,
+                      status_speech_text: 'Pending',
+                      message_speech_text: 'on proses AI Speech To Text'
+                    }
+                  },
+                  timestamp: { type: 'string', format: 'date-time', example: '2026-10-19T02:09:57.732Z' }
                 }
               }
             }
