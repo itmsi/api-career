@@ -26,6 +26,7 @@ const SELECT_COLUMNS = [
   "status_speech_text",
   "message_speech_text",
   "step",
+  "questions",
   "created_at",
   "created_by",
   "updated_at",
@@ -49,6 +50,7 @@ const CONTENT_COLUMNS = [
   "nextcloud_path_audio",
   "file_link_audio",
   "speech_text",
+  "questions",
 ];
 
 const ALLOWED_SORT_COLUMNS = ["created_at"];
@@ -70,9 +72,17 @@ const normalizeFilterValue = (value) => {
   return trimmed;
 };
 
+// Kolom jsonb harus dikirim sebagai string JSON, karena array JS akan
+// dikonversi knex/pg menjadi array postgres
+const JSON_COLUMNS = ["questions"];
+
 const pickContentColumns = (data = {}) =>
   CONTENT_COLUMNS.reduce((acc, column) => {
-    acc[column] = data[column] ?? null;
+    const value = data[column] ?? null;
+    acc[column] =
+      JSON_COLUMNS.includes(column) && value !== null && typeof value !== "string"
+        ? JSON.stringify(value)
+        : value;
     return acc;
   }, {});
 

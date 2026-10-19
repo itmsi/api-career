@@ -1,6 +1,7 @@
 const path = require("path");
 const { v4: uuidv4 } = require("uuid");
 const repository = require("./repository");
+const masterQuestionsRepository = require("../master_questions/repository");
 const {
   uploadFile,
   deleteFile: deleteNextcloudFile,
@@ -46,6 +47,24 @@ const uploadContentFile = async (kind, file) => {
 
 const getUploadedFile = (files, kind) => files?.[`file_${kind}`]?.[0] || null;
 
+// Ambil data pertanyaan dari master questions (db_hrm_master_questions.id)
+// berdasarkan id_question. Return null kalau id_question kosong/tidak ditemukan
+const buildQuestions = async (idQuestion) => {
+  if (!idQuestion) return null;
+  const [question] = await masterQuestionsRepository.findByIds([idQuestion]);
+  if (!question) return null;
+
+  return [
+    {
+      question_id: question.question_id ?? null,
+      question_en: question.question_en ?? null,
+      question_cn: question.question_cn ?? null,
+      focus_assessment: question.focus_assessment ?? null,
+      step: question.step ?? null,
+    },
+  ];
+};
+
 const buildResult = (data) => ({
   applicant_form_id: data.applicant_form_id,
   id_question: data.id_question,
@@ -56,6 +75,7 @@ const buildResult = (data) => ({
   file_type_audio: data.file_type_audio,
   file_audio: data.file_link_audio,
   speech_text: data.speech_text,
+  questions: data.questions ?? null,
 });
 
 const getContents = async (params) => {
@@ -141,6 +161,7 @@ const createContent = async (payload, files, user) => {
     id_question: normalizeOptionalString(payload.id_question),
     speech_text: normalizeOptionalString(payload.speech_text),
   };
+  data.questions = await buildQuestions(data.id_question);
 
   for (const kind of MEDIA_KINDS) {
     data[`file_title_${kind}`] = normalizeOptionalString(
@@ -185,6 +206,10 @@ const updateContent = async (id, payload, files, user) => {
     if (payload[field] !== undefined) {
       data[field] = normalizeOptionalString(payload[field]);
     }
+  }
+
+  if (payload.id_question !== undefined) {
+    data.questions = await buildQuestions(data.id_question);
   }
 
   for (const kind of MEDIA_KINDS) {

@@ -19,6 +19,12 @@ const applicantFormContentsSchema = {
       status_speech_text: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], description: 'Status proses speech to text file audio', example: 'Success' },
       message_speech_text: { type: 'string', nullable: true, description: 'Pesan/respon terakhir dari API speech to text (dipotong maksimal 2000 karakter)' },
       step: { type: 'string', nullable: true, description: 'Step dari master question (diisi otomatis saat applicant form dibuat/diupdate)', example: '1' },
+      questions: {
+        type: 'array',
+        nullable: true,
+        description: 'Data pertanyaan dari master question (db_hrm_master_questions) berdasarkan id_question, diisi otomatis saat create/update. null kalau id_question kosong / tidak ditemukan',
+        items: { $ref: '#/components/schemas/ApplicantFormContentQuestion' }
+      },
       created_at: { type: 'string', format: 'date-time' },
       created_by: { type: 'string', nullable: true },
       updated_at: { type: 'string', format: 'date-time' },
@@ -28,12 +34,22 @@ const applicantFormContentsSchema = {
       is_delete: { type: 'boolean', example: false }
     }
   },
+  ApplicantFormContentQuestion: {
+    type: 'object',
+    properties: {
+      question_id: { type: 'string', nullable: true, example: 'Ceritakan tentang diri Anda' },
+      question_en: { type: 'string', nullable: true, example: 'Tell us about yourself' },
+      question_cn: { type: 'string', nullable: true, example: '请介绍一下你自己' },
+      focus_assessment: { type: 'string', nullable: true, example: 'Communication' },
+      step: { type: 'string', nullable: true, example: '1' }
+    }
+  },
   ApplicantFormContentInput: {
     type: 'object',
     description: 'Semua field opsional, termasuk file video dan audio',
     properties: {
       applicant_form_id: { type: 'string', format: 'uuid', nullable: true, description: 'ID applicant form (applicant_forms.id), opsional. Otomatis terisi saat file_link_video dipakai di applicant form', example: '9b2e7c1a-3d4f-4e5a-8b6c-7d8e9f0a1b2c' },
-      id_question: { type: 'string', format: 'uuid', nullable: true, description: 'ID master question (db_hrm_master_questions.id), opsional', example: '3a1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d' },
+      id_question: { type: 'string', format: 'uuid', nullable: true, description: 'ID master question (db_hrm_master_questions.id), opsional. Kalau ditemukan, kolom questions otomatis diisi dari master question', example: '3a1b2c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d' },
       file_title_video: { type: 'string', example: 'Video Perkenalan' },
       file_type_video: { type: 'string', example: 'video' },
       file_video: { type: 'string', format: 'binary', description: 'File video (mp4/webm/mov/avi/mkv/mpeg), opsional' },
@@ -94,7 +110,13 @@ const applicantFormContentsSchema = {
       file_title_audio: { type: 'string', nullable: true, example: 'Rekaman Suara' },
       file_type_audio: { type: 'string', nullable: true, example: 'audio' },
       file_audio: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/PqRsTuVwXyZaBcD' },
-      speech_text: { type: 'string', nullable: true, example: 'Perkenalkan, nama saya ...' }
+      speech_text: { type: 'string', nullable: true, example: 'Perkenalkan, nama saya ...' },
+      questions: {
+        type: 'array',
+        nullable: true,
+        description: 'Data pertanyaan dari master question (db_hrm_master_questions) berdasarkan id_question, diisi otomatis saat create/update. null kalau id_question kosong / tidak ditemukan',
+        items: { $ref: '#/components/schemas/ApplicantFormContentQuestion' }
+      }
     }
   }
 }
