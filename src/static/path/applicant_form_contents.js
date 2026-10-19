@@ -59,7 +59,11 @@ const applicantFormContentsPaths = {
                   description: 'Filter berdasarkan applicant_form_id. null, string kosong, "null" atau "nan" berarti tidak difilter',
                   example: ''
                 },
-                sort_by: { type: 'string', example: 'created_at' },
+                sort_by: {
+                  type: 'string',
+                  description: 'Bisa semua kolom applicant_form_contents (contoh: created_at, step, id_question, status_speech_text). Kolom yang tidak dikenal otomatis memakai created_at',
+                  example: 'created_at'
+                },
                 sort_order: { type: 'string', example: 'desc' }
               }
             }

@@ -102,9 +102,9 @@ const getListValidation = [
   body("search").optional().isString().withMessage("Search harus berupa teks"),
   optionalUuidField("applicant_form_id"),
   body("sort_by")
-    .optional()
-    .isIn(["created_at"])
-    .withMessage("sort_by tidak valid"),
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("sort_by harus berupa teks"),
   body("sort_order")
     .optional()
     .isIn(["asc", "desc"])

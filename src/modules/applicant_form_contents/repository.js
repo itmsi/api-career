@@ -53,7 +53,9 @@ const CONTENT_COLUMNS = [
   "questions",
 ];
 
-const ALLOWED_SORT_COLUMNS = ["created_at"];
+// Semua kolom yang di-select bisa dipakai sort_by. Kolom di luar daftar ini
+// otomatis kembali ke created_at (lihat parseSorting)
+const ALLOWED_SORT_COLUMNS = SELECT_COLUMNS;
 const SEARCHABLE_COLUMNS = [
   "file_title_video",
   "file_type_video",
