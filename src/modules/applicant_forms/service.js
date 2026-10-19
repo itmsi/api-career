@@ -106,6 +106,7 @@ const nonEmptyLinks = (values) => [
 // - applicant_form_signatures.signature_link  <- applicant_forms.signature_link
 // - applicant_form_files.file_link            <- applicant_forms.applicant_form_files[].file
 // - applicant_form_contents.file_link_video   <- applicant_forms.applicant_form_contents[].file_video
+//   (sekaligus isi kolom step dari applicant_form_contents[].step)
 const linkUploadsToForm = async (form) => {
   if (!form?.id) return
 
@@ -114,7 +115,15 @@ const linkUploadsToForm = async (form) => {
 
   await repository.linkSignaturesToForm(nonEmptyLinks([form.signature_link]), form.id)
   await repository.linkFilesToForm(nonEmptyLinks(files.map((item) => item?.file)), form.id)
-  await repository.linkContentsToForm(nonEmptyLinks(contents.map((item) => item?.file_video)), form.id)
+  const contentSteps = new Map()
+  for (const item of contents) {
+    const [videoLink] = nonEmptyLinks([item?.file_video])
+    if (videoLink && !contentSteps.has(videoLink)) contentSteps.set(videoLink, item?.step ?? null)
+  }
+  await repository.linkContentsToForm(
+    [...contentSteps].map(([fileVideo, step]) => ({ file_video: fileVideo, step })),
+    form.id
+  )
 }
 
 const getApplicantForms = async (params) => {

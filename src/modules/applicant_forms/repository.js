@@ -409,12 +409,15 @@ const linkFilesToForm = async (links, applicantFormId) => {
     .update({ applicant_form_id: applicantFormId, updated_at: pgCore.fn.now() })
 }
 
-const linkContentsToForm = async (videoLinks, applicantFormId) => {
-  if (!videoLinks.length) return 0
-  return await pgCore('applicant_form_contents')
-    .whereIn('file_link_video', videoLinks)
-    .where({ deleted_at: null })
-    .update({ applicant_form_id: applicantFormId, updated_at: pgCore.fn.now() })
+// contents: [{ file_video, step }]. step berbeda per content, jadi diupdate per link
+const linkContentsToForm = async (contents, applicantFormId) => {
+  let total = 0
+  for (const { file_video: videoLink, step } of contents) {
+    total += await pgCore('applicant_form_contents')
+      .where({ file_link_video: videoLink, deleted_at: null })
+      .update({ applicant_form_id: applicantFormId, step: step ?? null, updated_at: pgCore.fn.now() })
+  }
+  return total
 }
 
 // Dipakai proses antrian speech to text (lihat ./speech_to_text.js)

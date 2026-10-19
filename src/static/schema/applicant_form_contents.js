@@ -18,6 +18,7 @@ const applicantFormContentsSchema = {
       speech_text: { type: 'string', nullable: true, example: 'Perkenalkan, nama saya ...' },
       status_speech_text: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], description: 'Status proses speech to text file audio', example: 'Success' },
       message_speech_text: { type: 'string', nullable: true, description: 'Pesan/respon terakhir dari API speech to text (dipotong maksimal 2000 karakter)' },
+      step: { type: 'string', nullable: true, description: 'Step dari master question (diisi otomatis saat applicant form dibuat/diupdate)', example: '1' },
       created_at: { type: 'string', format: 'date-time' },
       created_by: { type: 'string', nullable: true },
       updated_at: { type: 'string', format: 'date-time' },
