@@ -154,6 +154,44 @@ const applicantFormContentsPaths = {
       }
     }
   },
+  '/applicant_form_contents/audio/{file_link_audio}': {
+    get: {
+      tags: ['Applicant Form Contents'],
+      summary: 'Get content by file_link_audio',
+      description: 'Ambil data audio & hasil speech to text berdasarkan file_link_audio. Parameter bisa berupa link lengkap (di-URL-encode, contoh: https%3A%2F%2Fcloud.motorsights.com%2Fs%2F4M6jZtj3FgWH38D) atau token share-nya saja (contoh: 4M6jZtj3FgWH38D). Kalau ada beberapa content dengan link yang sama, yang dikembalikan adalah yang terbaru.',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'file_link_audio',
+          in: 'path',
+          required: true,
+          description: 'file_link_audio (URL-encoded) atau token share Nextcloud',
+          schema: { type: 'string', example: '4M6jZtj3FgWH38D' }
+        }
+      ],
+      responses: {
+        200: {
+          description: 'Success',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  message: { type: 'string', example: 'Success' },
+                  data: { $ref: '#/components/schemas/ApplicantFormContentAudio' },
+                  timestamp: { type: 'string', format: 'date-time', example: '2026-10-19T01:59:11.842Z' }
+                }
+              }
+            }
+          }
+        },
+        400: errorResponse('Validation error'),
+        401: errorResponse('Unauthorized'),
+        404: errorResponse('Content dengan file_link_audio tsb tidak ditemukan')
+      }
+    }
+  },
   '/applicant_form_contents/{id}': {
     get: {
       tags: ['Applicant Form Contents'],

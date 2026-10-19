@@ -6,6 +6,7 @@ const {
   updateValidation,
   updateSpeechTextValidation,
   getByIdValidation,
+  getByAudioLinkValidation,
   getListValidation
 } = require('./validation')
 const { verifyToken } = require('../../middlewares')
@@ -35,6 +36,14 @@ router.post(
   updateSpeechTextValidation,
   validateMiddleware,
   controller.updateSpeechText
+)
+
+router.get(
+  '/audio/:file_link_audio',
+  verifyToken,
+  getByAudioLinkValidation,
+  validateMiddleware,
+  controller.getByAudioLink
 )
 
 router.put(

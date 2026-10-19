@@ -81,6 +81,15 @@ const getByIdValidation = [
     .withMessage("Format ID tidak valid"),
 ];
 
+const getByAudioLinkValidation = [
+  param("file_link_audio")
+    .notEmpty()
+    .withMessage("file_link_audio wajib diisi")
+    .isString()
+    .withMessage("file_link_audio harus berupa teks")
+    .trim(),
+];
+
 const getListValidation = [
   body("page")
     .optional()
@@ -106,5 +115,6 @@ module.exports = {
   updateValidation,
   updateSpeechTextValidation,
   getByIdValidation,
+  getByAudioLinkValidation,
   getListValidation,
 };

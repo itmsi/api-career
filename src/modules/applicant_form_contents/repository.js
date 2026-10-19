@@ -100,6 +100,23 @@ const findById = async (id) => {
     .first();
 };
 
+// Dipakai GET /audio/:file_link_audio: bisa berupa link lengkap atau token share
+// (contoh: 4M6jZtj3FgWH38D dari https://cloud.motorsights.com/s/4M6jZtj3FgWH38D)
+const findByAudioLink = async (fileLinkAudio) => {
+  return await pgCore(TABLE_NAME)
+    .select(SELECT_COLUMNS)
+    .where({ deleted_at: null })
+    .andWhere((qb) => {
+      qb.where("file_link_audio", fileLinkAudio).orWhere(
+        "file_link_audio",
+        "like",
+        `%/s/${fileLinkAudio}`,
+      );
+    })
+    .orderBy("created_at", "desc")
+    .first();
+};
+
 const create = async (data = {}) => {
   const payload = {
     ...pickContentColumns(data),
@@ -161,6 +178,7 @@ const remove = async (id, deletedBy) => {
 module.exports = {
   findAll,
   findById,
+  findByAudioLink,
   create,
   update,
   updateSpeechTextByAudioLink,

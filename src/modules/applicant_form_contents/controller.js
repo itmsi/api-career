@@ -20,6 +20,16 @@ const getById = async (req, res) => {
   }
 }
 
+const getByAudioLink = async (req, res) => {
+  try {
+    const { file_link_audio } = req.params
+    const data = await service.getContentByAudioLink(file_link_audio)
+    return successResponse(res, data)
+  } catch (error) {
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+  }
+}
+
 const create = async (req, res) => {
   try {
     const data = await service.createContent(req.body, req.files, req.user)
@@ -61,6 +71,7 @@ const remove = async (req, res) => {
 module.exports = {
   getList,
   getById,
+  getByAudioLink,
   create,
   update,
   updateSpeechText,

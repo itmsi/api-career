@@ -64,6 +64,29 @@ const getContentById = async (id) => {
   return data;
 };
 
+const getContentByAudioLink = async (fileLinkAudio) => {
+  const data = await repository.findByAudioLink(
+    normalizeOptionalString(fileLinkAudio),
+  );
+  if (!data) {
+    throw { message: "Data content tidak ditemukan", statusCode: 404 };
+  }
+
+  return {
+    id: data.id,
+    applicant_form_id: data.applicant_form_id,
+    id_question: data.id_question,
+    file_title_audio: data.file_title_audio,
+    file_type_audio: data.file_type_audio,
+    file_name_audio: data.file_name_audio,
+    nextcloud_path_audio: data.nextcloud_path_audio,
+    file_link_audio: data.file_link_audio,
+    speech_text: data.speech_text,
+    status_speech_text: data.status_speech_text,
+    message_speech_text: data.message_speech_text,
+  };
+};
+
 const createContent = async (payload, files, user) => {
   const authorId = getRequesterId(user);
   const data = {
@@ -219,6 +242,7 @@ const deleteContent = async (id, user) => {
 module.exports = {
   getContents,
   getContentById,
+  getContentByAudioLink,
   createContent,
   updateContent,
   updateSpeechText,

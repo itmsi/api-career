@@ -64,6 +64,23 @@ const applicantFormContentsSchema = {
       updated_at: { type: 'string', format: 'date-time', example: '2026-10-16T07:30:00.000Z' }
     }
   },
+  ApplicantFormContentAudio: {
+    type: 'object',
+    description: 'Data audio & hasil speech to text dari sebuah content',
+    properties: {
+      id: { type: 'string', format: 'uuid', example: 'dd096cc0-4365-431a-aeee-dd625df52535' },
+      applicant_form_id: { type: 'string', format: 'uuid', nullable: true, example: 'e0c7ae63-61ed-461d-bebc-c22982749a6f' },
+      id_question: { type: 'string', format: 'uuid', nullable: true, example: '2aa0963e-b2d2-44f7-adc8-87ec0a6255d2' },
+      file_title_audio: { type: 'string', nullable: true, example: 'Rekaman Suara' },
+      file_type_audio: { type: 'string', nullable: true, example: 'audio' },
+      file_name_audio: { type: 'string', nullable: true, example: 'audio-1792135447655-8b037d01-9c98-4458-8a7e-933a54e84d0f.webm' },
+      nextcloud_path_audio: { type: 'string', nullable: true, example: '/HRMS/applicantForms/dev2@mail.com_devdua/applicant_form_contents/audio-1792135447655-8b037d01-9c98-4458-8a7e-933a54e84d0f.webm' },
+      file_link_audio: { type: 'string', nullable: true, example: 'https://cloud.motorsights.com/s/4M6jZtj3FgWH38D' },
+      speech_text: { type: 'string', nullable: true, example: 'Halo, perkenalkan nama saya ...' },
+      status_speech_text: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], example: 'Success' },
+      message_speech_text: { type: 'string', nullable: true, example: 'Transcribe berhasil' }
+    }
+  },
   ApplicantFormContentResult: {
     type: 'object',
     description: 'Response ringkas setelah create/update content',
