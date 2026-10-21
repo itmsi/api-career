@@ -26,16 +26,26 @@ const generateFolderLogs = (dynamicFolder, path) => {
   }
 }
 
+// Return objek dengan method write(content). Kalau folder/file log tidak bisa
+// ditulis (mis. permission denied di volume docker), isi log dialihkan ke
+// console supaya tidak memicu uncaughtException di proses pemanggil.
 const logger = (fileName, type) => {
-  try {
-    const { folderPath } = generateFolderLogs('logs', type)
-    const finalPath = `${__dirname}/../../${folderPath}/${fileName}`
-    return fs.createWriteStream(finalPath, {
-      flags: 'a',
-      mode: 0o755
-    })
-  } catch (error) {
-    return error
+  const fallback = (content, error) => {
+    console.error(`Gagal menulis log ${type}/${fileName}: ${error?.message || error}`)
+    console.info(String(content).trimEnd())
+  }
+
+  return {
+    write: (content) => {
+      const result = generateFolderLogs('logs', type)
+      if (!result?.folderPath) return fallback(content, result)
+
+      const finalPath = `${__dirname}/../../${result.folderPath}/${fileName}`
+      fs.appendFile(finalPath, content, { mode: 0o755 }, (error) => {
+        if (error) fallback(content, error)
+      })
+      return true
+    }
   }
 }
 

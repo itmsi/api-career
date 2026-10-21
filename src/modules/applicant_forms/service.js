@@ -97,6 +97,35 @@ const buildPayload = async (payload = {}) => ({
   signature_date: normalizeOptionalString(payload.signature_date)
 })
 
+const nonEmptyLinks = (values) => [
+  ...new Set(values.filter((value) => typeof value === 'string' && value.trim() !== '').map((value) => value.trim()))
+]
+
+// Isi applicant_form_id di tabel upload (signatures/files/contents) yang link-nya
+// dipakai oleh applicant form ini:
+// - applicant_form_signatures.signature_link  <- applicant_forms.signature_link
+// - applicant_form_files.file_link            <- applicant_forms.applicant_form_files[].file
+// - applicant_form_contents.file_link_video   <- applicant_forms.applicant_form_contents[].file_video
+//   (sekaligus isi kolom step dari applicant_form_contents[].step)
+const linkUploadsToForm = async (form) => {
+  if (!form?.id) return
+
+  const files = Array.isArray(form.applicant_form_files) ? form.applicant_form_files : []
+  const contents = Array.isArray(form.applicant_form_contents) ? form.applicant_form_contents : []
+
+  await repository.linkSignaturesToForm(nonEmptyLinks([form.signature_link]), form.id)
+  await repository.linkFilesToForm(nonEmptyLinks(files.map((item) => item?.file)), form.id)
+  const contentSteps = new Map()
+  for (const item of contents) {
+    const [videoLink] = nonEmptyLinks([item?.file_video])
+    if (videoLink && !contentSteps.has(videoLink)) contentSteps.set(videoLink, item?.step ?? null)
+  }
+  await repository.linkContentsToForm(
+    [...contentSteps].map(([fileVideo, step]) => ({ file_video: fileVideo, step })),
+    form.id
+  )
+}
+
 const getApplicantForms = async (params) => {
   const result = await repository.findAll(params)
   return {
@@ -126,6 +155,7 @@ const createApplicantForm = async (payload, user) => {
     created_by: authorId,
     updated_by: authorId
   })
+  await linkUploadsToForm(created)
   publishMoveFiles(created)
   return created
 }
@@ -166,6 +196,7 @@ const updateApplicantForm = async (id, payload, user) => {
       updated_by: authorId
     })
     await invitationsRepository.markCompleted(invitation.id, created.id)
+    await linkUploadsToForm(created)
     publishMoveFiles(created)
     return created
   }
@@ -179,6 +210,7 @@ const updateApplicantForm = async (id, payload, user) => {
     ...(await buildPayload(payload)),
     updated_by: authorId
   })
+  await linkUploadsToForm(updated)
   publishMoveFiles(updated)
   return updated
 }

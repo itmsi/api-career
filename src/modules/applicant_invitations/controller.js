@@ -28,11 +28,18 @@ const create = async (req, res) => {
     let emailInfo = { email_sent: false, email_error: null }
     try {
       const sent = await service.sendInvitationEmail(invitation.id)
-      emailInfo = { email_sent: sent.email_sent, email_error: null }
+      emailInfo = {
+        email_sent: sent.email_sent,
+        email_error: null,
+        status_send_email: sent.status_send_email,
+        response_send_email: sent.response_send_email
+      }
     } catch (emailError) {
       emailInfo = {
         email_sent: false,
-        email_error: emailError?.message || 'Gagal mengirim email undangan'
+        email_error: emailError?.message || 'Gagal mengirim email undangan',
+        status_send_email: emailError?.status_send_email ?? invitation.status_send_email ?? null,
+        response_send_email: emailError?.response_send_email ?? invitation.response_send_email ?? null
       }
     }
 
@@ -47,14 +54,35 @@ const create = async (req, res) => {
 }
 
 /**
+ * Update data undangan. Hanya field yang dikirim di body yang di-update.
+ */
+const update = async (req, res) => {
+  try {
+    const { id } = req.params
+    const data = await service.updateInvitation(id, req.body, req.user)
+    return successResponse(res, data, 'Undangan berhasil diupdate')
+  } catch (error) {
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+  }
+}
+
+/**
  * Kirim ulang email undangan (misal HR ingin resend)
  */
 const resendEmail = async (req, res) => {
   try {
     const { id } = req.params
-    const { applicant_form_url } = await service.sendInvitationEmail(id)
+    const {
+      applicant_form_url,
+      status_send_email,
+      response_send_email
+    } = await service.sendInvitationEmail(id)
 
-    return successResponse(res, { applicant_form_url }, 'Email undangan berhasil dikirim ulang')
+    return successResponse(
+      res,
+      { applicant_form_url, status_send_email, response_send_email },
+      'Email undangan berhasil dikirim ulang'
+    )
   } catch (error) {
     return errorResponse(res, error?.message || error, error?.statusCode || 500)
   }
@@ -77,6 +105,7 @@ const verifyToken = async (req, res) => {
 module.exports = {
   getList,
   create,
+  update,
   resendEmail,
   verifyToken
 }

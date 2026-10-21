@@ -20,6 +20,19 @@ const applicantInvitationSchemas = {
       is_completed: { type: 'boolean', example: false },
       completed_at: { type: 'string', format: 'date-time', nullable: true, example: null },
       applicant_form_id: { type: 'string', format: 'uuid', nullable: true, example: null },
+      status_send_email: {
+        type: 'string',
+        nullable: true,
+        enum: ['Process', 'Success', 'Failed', null],
+        description: 'Status pengiriman email undangan terakhir (create / resend)',
+        example: 'Success'
+      },
+      response_send_email: {
+        type: 'string',
+        nullable: true,
+        description: 'JSON string berisi pesan dari sistem (system) dan respon provider email (provider) jika ada',
+        example: '{"system":{"message":"Email undangan berhasil dikirim","at":"2026-10-21T00:00:00.000Z"},"provider":{"messageId":"<abc@mail>","response":"250 2.0.0 OK","accepted":["john.doe@example.com"],"rejected":[],"envelope":null}}'
+      },
       applicant_form_url: {
         type: 'string',
         description: 'URL lengkap applicant form beserta token',
@@ -41,6 +54,24 @@ const applicantInvitationSchemas = {
       full_name: { type: 'string', minLength: 3, maxLength: 150, example: 'John Doe' },
       email: { type: 'string', format: 'email', example: 'john.doe@example.com' },
       no_mobile: { type: 'string', example: '081234567890' }
+    }
+  },
+  ApplicantInvitationUpdateInput: {
+    type: 'object',
+    description: 'Semua field opsional. Hanya field yang dikirim yang di-update.',
+    properties: {
+      full_name: { type: 'string', minLength: 3, maxLength: 150, example: 'John Doe' },
+      email: { type: 'string', format: 'email', example: 'john.doe@example.com' },
+      no_mobile: { type: 'string', example: '081234567890' },
+      status_send_email: { type: 'string', nullable: true, enum: ['Process', 'Success', 'Failed', null], example: 'Failed' },
+      response_send_email: {
+        oneOf: [{ type: 'string' }, { type: 'object' }],
+        nullable: true,
+        description: 'Teks atau object (disimpan sebagai JSON string)',
+        example: { system: { message: 'Ditolak provider: Email domain is blocked' }, provider: null }
+      },
+      is_completed: { type: 'boolean', example: false, description: 'true -> completed_at diisi waktu sekarang, false -> completed_at dikosongkan' },
+      applicant_form_id: { type: 'string', format: 'uuid', nullable: true, example: null }
     }
   },
   ApplicantInvitationVerifyResult: {

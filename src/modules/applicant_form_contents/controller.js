@@ -20,6 +20,27 @@ const getById = async (req, res) => {
   }
 }
 
+const getByAudioLink = async (req, res) => {
+  try {
+    const { file_link_audio } = req.params
+    const data = await service.getContentByAudioLink(file_link_audio)
+    return successResponse(res, data)
+  } catch (error) {
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+  }
+}
+
+const processSpeechText = async (req, res) => {
+  try {
+    const { file_link_audio } = req.params
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || null
+    const data = await service.processSpeechText(file_link_audio, req.user, token)
+    return successResponse(res, data)
+  } catch (error) {
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+  }
+}
+
 const create = async (req, res) => {
   try {
     const data = await service.createContent(req.body, req.files, req.user)
@@ -39,6 +60,15 @@ const update = async (req, res) => {
   }
 }
 
+const updateSpeechText = async (req, res) => {
+  try {
+    const data = await service.updateSpeechText(req.body, req.user)
+    return successResponse(res, data, 'Speech to text berhasil diupdate')
+  } catch (error) {
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+  }
+}
+
 const remove = async (req, res) => {
   try {
     const { id } = req.params
@@ -52,7 +82,10 @@ const remove = async (req, res) => {
 module.exports = {
   getList,
   getById,
+  getByAudioLink,
+  processSpeechText,
   create,
   update,
+  updateSpeechText,
   remove
 }

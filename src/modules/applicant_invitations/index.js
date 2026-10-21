@@ -3,6 +3,7 @@ const router = express.Router()
 const controller = require('./controller')
 const {
   createValidation,
+  updateValidation,
   getByIdValidation,
   verifyTokenValidation,
   getListValidation
@@ -25,6 +26,14 @@ router.post(
   createValidation,
   validateMiddleware,
   controller.create
+)
+
+router.put(
+  '/:id',
+  verifyToken,
+  updateValidation,
+  validateMiddleware,
+  controller.update
 )
 
 router.post(

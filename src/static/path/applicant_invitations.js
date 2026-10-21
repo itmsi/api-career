@@ -103,6 +103,51 @@ const applicantInvitationPaths = {
       }
     }
   },
+  '/applicant-invitations/{id}': {
+    put: {
+      tags: ['Applicant Invitations'],
+      summary: 'Update applicant invitation',
+      description: 'Update data undangan. Hanya field yang dikirim di body yang di-update, field yang tidak dikirim tidak diubah.',
+      security: [{ bearerAuth: [] }],
+      parameters: [
+        {
+          name: 'id',
+          in: 'path',
+          required: true,
+          description: 'Applicant Invitation UUID',
+          schema: { type: 'string', format: 'uuid' }
+        }
+      ],
+      requestBody: {
+        required: true,
+        content: {
+          'application/json': {
+            schema: { $ref: '#/components/schemas/ApplicantInvitationUpdateInput' }
+          }
+        }
+      },
+      responses: {
+        200: {
+          description: 'Undangan berhasil diupdate',
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  success: { type: 'boolean', example: true },
+                  data: { $ref: '#/components/schemas/ApplicantInvitation' },
+                  message: { type: 'string', example: 'Undangan berhasil diupdate' }
+                }
+              }
+            }
+          }
+        },
+        400: { description: 'Validation error / tidak ada data yang di-update' },
+        404: { description: 'Not found' },
+        409: { description: 'Undangan aktif untuk email ini sudah ada' }
+      }
+    }
+  },
   '/applicant-invitations/{id}/resend': {
     post: {
       tags: ['Applicant Invitations'],
@@ -130,7 +175,9 @@ const applicantInvitationPaths = {
                   data: {
                     type: 'object',
                     properties: {
-                      applicant_form_url: { type: 'string', example: 'https://career.motorsights.com/applicant-form/eyJ...' }
+                      applicant_form_url: { type: 'string', example: 'https://career.motorsights.com/applicant-form/eyJ...' },
+                      status_send_email: { type: 'string', nullable: true, example: 'Success' },
+                      response_send_email: { type: 'string', nullable: true, description: 'JSON string: { system, provider }' }
                     }
                   },
                   message: { type: 'string', example: 'Email undangan berhasil dikirim ulang' }

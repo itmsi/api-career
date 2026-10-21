@@ -14,21 +14,27 @@ const optionalTextField = (field, max) =>
     .isLength({ max })
     .withMessage(`${field} maksimal ${max} karakter`);
 
-// id_question dikirim lewat multipart, jadi string kosong / 'null' dianggap null
-const questionIdValidation = body("id_question")
-  .optional({ nullable: true })
-  .custom((value) => {
-    if (typeof value !== "string")
-      throw new Error("id_question harus berupa UUID");
-    const trimmed = value.trim();
-    if (["", "null", "nan"].includes(trimmed)) return true;
-    if (!UUID_REGEX.test(trimmed))
-      throw new Error("Format id_question tidak valid");
-    return true;
-  });
+// Field uuid dikirim lewat multipart, jadi string kosong / 'null' dianggap null
+const optionalUuidField = (field) =>
+  body(field)
+    .optional({ nullable: true })
+    .custom((value) => {
+      if (typeof value !== "string")
+        throw new Error(`${field} harus berupa UUID`);
+      const trimmed = value.trim();
+      if (["", "null", "nan"].includes(trimmed)) return true;
+      if (!UUID_REGEX.test(trimmed))
+        throw new Error(`Format ${field} tidak valid`);
+      return true;
+    });
 
 const contentFieldsValidation = [
-  questionIdValidation,
+  optionalUuidField("applicant_form_id"),
+  optionalUuidField("id_question"),
+  body("speech_text")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("speech_text harus berupa teks"),
   optionalTextField("file_title_video", MAX_TITLE),
   optionalTextField("file_type_video", MAX_TYPE),
   optionalTextField("file_title_audio", MAX_TITLE),
@@ -46,12 +52,42 @@ const updateValidation = [
   ...contentFieldsValidation,
 ];
 
+const updateSpeechTextValidation = [
+  body("file_link_audio")
+    .notEmpty()
+    .withMessage("file_link_audio wajib diisi")
+    .isString()
+    .withMessage("file_link_audio harus berupa teks")
+    .trim(),
+  body("speech_text")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("speech_text harus berupa teks"),
+  body("status_speech_text")
+    .optional({ nullable: true })
+    .isIn(["Pending", "Success", "Failed"])
+    .withMessage("status_speech_text harus Pending, Success, atau Failed"),
+  body("message_speech_text")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("message_speech_text harus berupa teks"),
+];
+
 const getByIdValidation = [
   param("id")
     .notEmpty()
     .withMessage("ID wajib diisi")
     .isUUID()
     .withMessage("Format ID tidak valid"),
+];
+
+const getByAudioLinkValidation = [
+  param("file_link_audio")
+    .notEmpty()
+    .withMessage("file_link_audio wajib diisi")
+    .isString()
+    .withMessage("file_link_audio harus berupa teks")
+    .trim(),
 ];
 
 const getListValidation = [
@@ -64,10 +100,11 @@ const getListValidation = [
     .isInt({ min: 1, max: 100 })
     .withMessage("Limit harus antara 1-100"),
   body("search").optional().isString().withMessage("Search harus berupa teks"),
+  optionalUuidField("applicant_form_id"),
   body("sort_by")
-    .optional()
-    .isIn(["created_at"])
-    .withMessage("sort_by tidak valid"),
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("sort_by harus berupa teks"),
   body("sort_order")
     .optional()
     .isIn(["asc", "desc"])
@@ -77,6 +114,8 @@ const getListValidation = [
 module.exports = {
   createValidation,
   updateValidation,
+  updateSpeechTextValidation,
   getByIdValidation,
+  getByAudioLinkValidation,
   getListValidation,
 };

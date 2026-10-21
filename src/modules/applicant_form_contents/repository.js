@@ -10,6 +10,7 @@ const TABLE_NAME = "applicant_form_contents";
 
 const SELECT_COLUMNS = [
   "id",
+  "applicant_form_id",
   "id_question",
   "file_title_video",
   "file_type_video",
@@ -21,6 +22,11 @@ const SELECT_COLUMNS = [
   "file_name_audio",
   "nextcloud_path_audio",
   "file_link_audio",
+  "speech_text",
+  "status_speech_text",
+  "message_speech_text",
+  "step",
+  "questions",
   "created_at",
   "created_by",
   "updated_at",
@@ -31,6 +37,7 @@ const SELECT_COLUMNS = [
 ];
 
 const CONTENT_COLUMNS = [
+  "applicant_form_id",
   "id_question",
   "file_title_video",
   "file_type_video",
@@ -42,9 +49,13 @@ const CONTENT_COLUMNS = [
   "file_name_audio",
   "nextcloud_path_audio",
   "file_link_audio",
+  "speech_text",
+  "questions",
 ];
 
-const ALLOWED_SORT_COLUMNS = ["created_at"];
+// Semua kolom yang di-select bisa dipakai sort_by. Kolom di luar daftar ini
+// otomatis kembali ke created_at (lihat parseSorting)
+const ALLOWED_SORT_COLUMNS = SELECT_COLUMNS;
 const SEARCHABLE_COLUMNS = [
   "file_title_video",
   "file_type_video",
@@ -52,19 +63,44 @@ const SEARCHABLE_COLUMNS = [
   "file_type_audio",
 ];
 
+const ALLOWED_FILTERS = ["applicant_form_id"];
+
+// Nilai kosong ("", "null", "nan", null) dianggap tidak memfilter
+const normalizeFilterValue = (value) => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (["", "null", "nan"].includes(trimmed.toLowerCase())) return undefined;
+  return trimmed;
+};
+
+// Kolom jsonb harus dikirim sebagai string JSON, karena array JS akan
+// dikonversi knex/pg menjadi array postgres
+const JSON_COLUMNS = ["questions"];
+
 const pickContentColumns = (data = {}) =>
   CONTENT_COLUMNS.reduce((acc, column) => {
-    acc[column] = data[column] ?? null;
+    const value = data[column] ?? null;
+    acc[column] =
+      JSON_COLUMNS.includes(column) && value !== null && typeof value !== "string"
+        ? JSON.stringify(value)
+        : value;
     return acc;
   }, {});
 
 const findAll = async (params = {}) => {
   const queryParams = parseStandardQuery(
-    { body: params },
+    {
+      body: {
+        ...params,
+        applicant_form_id: normalizeFilterValue(params.applicant_form_id),
+      },
+    },
     {
       allowedColumns: ALLOWED_SORT_COLUMNS,
       defaultOrder: ["created_at", "desc"],
       searchableColumns: SEARCHABLE_COLUMNS,
+      allowedFilters: ALLOWED_FILTERS,
       fromBody: true,
     },
   );
@@ -91,6 +127,23 @@ const findById = async (id) => {
   return await pgCore(TABLE_NAME)
     .select(SELECT_COLUMNS)
     .where({ id, deleted_at: null })
+    .first();
+};
+
+// Dipakai GET /audio/:file_link_audio: bisa berupa link lengkap atau token share
+// (contoh: 4M6jZtj3FgWH38D dari https://cloud.motorsights.com/s/4M6jZtj3FgWH38D)
+const findByAudioLink = async (fileLinkAudio) => {
+  return await pgCore(TABLE_NAME)
+    .select(SELECT_COLUMNS)
+    .where({ deleted_at: null })
+    .andWhere((qb) => {
+      qb.where("file_link_audio", fileLinkAudio).orWhere(
+        "file_link_audio",
+        "like",
+        `%/s/${fileLinkAudio}`,
+      );
+    })
+    .orderBy("created_at", "desc")
     .first();
 };
 
@@ -124,6 +177,33 @@ const update = async (id, data = {}) => {
   return await findById(updated.id);
 };
 
+// Dipakai POST /update-stt: update hasil speech to text untuk semua content
+// yang file_link_audio-nya sama
+const updateSpeechTextByAudioLink = async (fileLinkAudio, data = {}) => {
+  const updated = await pgCore(TABLE_NAME)
+    .where({ file_link_audio: fileLinkAudio, deleted_at: null })
+    .update({
+      ...data,
+      updated_at: pgCore.fn.now(),
+    })
+    .returning(SELECT_COLUMNS);
+
+  return updated;
+};
+
+// Dipakai POST /audio/:file_link_audio: update status speech to text satu content
+const updateSpeechTextById = async (id, data = {}) => {
+  const [updated] = await pgCore(TABLE_NAME)
+    .where({ id, deleted_at: null })
+    .update({
+      ...data,
+      updated_at: pgCore.fn.now(),
+    })
+    .returning(SELECT_COLUMNS);
+
+  return updated || null;
+};
+
 const remove = async (id, deletedBy) => {
   const [updated] = await pgCore(TABLE_NAME)
     .where({ id, deleted_at: null })
@@ -141,7 +221,10 @@ const remove = async (id, deletedBy) => {
 module.exports = {
   findAll,
   findById,
+  findByAudioLink,
   create,
   update,
+  updateSpeechTextByAudioLink,
+  updateSpeechTextById,
   remove,
 };
