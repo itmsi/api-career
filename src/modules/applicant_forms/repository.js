@@ -118,6 +118,7 @@ const ID_COLUMN = pgCore.raw('coalesce(afi.applicant_form_id, afi.id) as id')
 // baik di listing maupun di detail.
 const INVITATION_SELECT_COLUMNS = [
   ID_COLUMN,
+  'afi.id as applicant_form_invitation_id',
   'afi.full_name as name',
   'afi.email as email',
   'afi.no_mobile as no_mobile',
@@ -125,6 +126,7 @@ const INVITATION_SELECT_COLUMNS = [
   'afi.token_expires_at as token_expires_at',
   'afi.is_completed as is_completed',
   'afi.completed_at as completed_at',
+  'afi.status_send_email as status_send_email',
   'afi.created_at as created_at',
   'gse.employee_name as created_by_name'
 ]
