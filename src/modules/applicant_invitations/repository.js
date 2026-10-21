@@ -17,6 +17,8 @@ const SELECT_COLUMNS = [
   'is_completed',
   'completed_at',
   'applicant_form_id',
+  'status_send_email',
+  'response_send_email',
   'created_at',
   'created_by',
   'updated_at',
@@ -145,6 +147,42 @@ const updateContact = async (id, data = {}) => {
   return await findById(updated.id)
 }
 
+// Update sebagian kolom: hanya key yang ada di `data` yang di-update
+// (payload sudah disaring di service).
+const update = async (id, data = {}) => {
+  try {
+    const [updated] = await pgCore(TABLE_NAME)
+      .where({ id, deleted_at: null })
+      .update({ ...data, updated_at: pgCore.fn.now() })
+      .returning('id')
+
+    if (!updated?.id) return null
+    return await findById(updated.id)
+  } catch (error) {
+    if (error.code === '23505') {
+      throw { message: 'Undangan aktif untuk email ini sudah ada dan belum diselesaikan', statusCode: 409 }
+    }
+    throw error
+  }
+}
+
+// Status pengiriman email undangan (Process/Success/Failed) beserta
+// response dari sistem kita & provider email, disimpan sebagai JSON string.
+const updateSendEmailStatus = async (id, status, response = null) => {
+  const [updated] = await pgCore(TABLE_NAME)
+    .where({ id, deleted_at: null })
+    .update({
+      status_send_email: status,
+      response_send_email: response === null || typeof response === 'string'
+        ? response
+        : JSON.stringify(response),
+      updated_at: pgCore.fn.now()
+    })
+    .returning('id')
+
+  return updated?.id || null
+}
+
 const markCompleted = async (id, applicantFormId = null) => {
   const [updated] = await pgCore(TABLE_NAME)
     .where({ id, deleted_at: null })
@@ -221,7 +259,9 @@ module.exports = {
   findUploadedContentsByCreator,
   findLatestSignatureByCreator,
   create,
+  update,
   updateContact,
+  updateSendEmailStatus,
   markCompleted,
   remove
 }

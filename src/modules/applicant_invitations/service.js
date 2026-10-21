@@ -135,8 +135,32 @@ const createInvitation = async (payload, user) => {
   }
 }
 
+const SEND_EMAIL_STATUS = {
+  PROCESS: 'Process',
+  SUCCESS: 'Success',
+  FAILED: 'Failed'
+}
+
 /**
- * Kirim email undangan berisi nama, email, no_mobile, dan url + token
+ * Simpan status pengiriman email ke invitation. response_send_email berisi
+ * pesan dari sistem kita (system) dan respon provider email (provider) jika ada.
+ * Mengembalikan nilai yang disimpan supaya bisa ikut dikirim di response API.
+ */
+const updateSendEmailStatus = async (id, status, message, provider = null) => {
+  const response = JSON.stringify({
+    system: { message, at: new Date().toISOString() },
+    provider
+  })
+
+  await repository.updateSendEmailStatus(id, status, response)
+
+  return { status_send_email: status, response_send_email: response }
+}
+
+/**
+ * Kirim email undangan berisi nama, email, no_mobile, dan url + token.
+ * Status pengiriman dicatat di status_send_email (Process -> Success/Failed)
+ * beserta response_send_email.
  */
 const sendInvitationEmail = async (id) => {
   const invitation = await repository.findById(id)
@@ -147,48 +171,85 @@ const sendInvitationEmail = async (id) => {
 
   const applicantFormUrl = buildApplicantFormUrl(invitation.token)
 
+  await updateSendEmailStatus(id, SEND_EMAIL_STATUS.PROCESS, 'Email undangan sedang dikirim')
+
   if (!EMAIL_ENABLED) {
-    return { invitation, applicant_form_url: applicantFormUrl, email_sent: false }
+    const sendStatus = await updateSendEmailStatus(
+      id,
+      SEND_EMAIL_STATUS.FAILED,
+      'Email tidak dikirim karena pengiriman email dinonaktifkan (EMAIL_ENABLED bukan true)'
+    )
+    return { invitation, applicant_form_url: applicantFormUrl, email_sent: false, ...sendStatus }
   }
 
-  const expiresAtFormatted = new Intl.DateTimeFormat('id-ID', {
-    timeZone: 'Asia/Jakarta',
-    dateStyle: 'long'
-  }).format(new Date(invitation.token_expires_at))
+  let result
+  try {
+    const expiresAtFormatted = new Intl.DateTimeFormat('id-ID', {
+      timeZone: 'Asia/Jakarta',
+      dateStyle: 'long'
+    }).format(new Date(invitation.token_expires_at))
 
-  const firstName = getFirstName(invitation.full_name)
+    const firstName = getFirstName(invitation.full_name)
 
-  const result = await Mail.init()
-    .to(invitation.email)
-    .subject(`${firstName}, lengkapi data pelamar — PT Motorsights`)
-    .additional(RECRUITMENT_REPLY_TO ? { replyTo: RECRUITMENT_REPLY_TO } : {})
-    .attachments(LOGO_ATTACHMENTS)
-    .html('mail/applicant_invitation', {
-      data: {
-        first_name: firstName,
-        full_name: invitation.full_name,
-        email: invitation.email,
-        no_mobile: invitation.no_mobile,
-        applicant_form_url: applicantFormUrl,
-        expires_at: expiresAtFormatted,
-        company_address: COMPANY_ADDRESS,
-        company_phone: COMPANY_PHONE,
-        company_phone_tel: toTelLink(COMPANY_PHONE),
-        logo_src: LOGO_SRC
-      }
-    })
-    .text(buildInvitationText({
-      firstName,
-      applicantFormUrl,
-      expiresAt: expiresAtFormatted
-    }))
-    .send()
+    result = await Mail.init()
+      .to(invitation.email)
+      .subject(`${firstName}, lengkapi data pelamar — PT Motorsights`)
+      .additional(RECRUITMENT_REPLY_TO ? { replyTo: RECRUITMENT_REPLY_TO } : {})
+      .attachments(LOGO_ATTACHMENTS)
+      .html('mail/applicant_invitation', {
+        data: {
+          first_name: firstName,
+          full_name: invitation.full_name,
+          email: invitation.email,
+          no_mobile: invitation.no_mobile,
+          applicant_form_url: applicantFormUrl,
+          expires_at: expiresAtFormatted,
+          company_address: COMPANY_ADDRESS,
+          company_phone: COMPANY_PHONE,
+          company_phone_tel: toTelLink(COMPANY_PHONE),
+          logo_src: LOGO_SRC
+        }
+      })
+      .text(buildInvitationText({
+        firstName,
+        applicantFormUrl,
+        expiresAt: expiresAtFormatted
+      }))
+      .send()
+  } catch (error) {
+    const sendStatus = await updateSendEmailStatus(
+      id,
+      SEND_EMAIL_STATUS.FAILED,
+      `Terjadi error di sistem saat mengirim email: ${error?.message || error}`
+    )
+    throw { message: `Gagal mengirim email: ${error?.message || error}`, statusCode: 500, ...sendStatus }
+  }
 
   if (!result.status) {
-    throw { message: `Gagal mengirim email: ${result.message}`, statusCode: 502 }
+    const sendStatus = await updateSendEmailStatus(
+      id,
+      SEND_EMAIL_STATUS.FAILED,
+      `Gagal mengirim email: ${result.message}`,
+      result.error || null
+    )
+    throw { message: `Gagal mengirim email: ${result.message}`, statusCode: 502, ...sendStatus }
   }
 
-  return { invitation, applicant_form_url: applicantFormUrl, email_sent: true }
+  const info = result.data || {}
+  const sendStatus = await updateSendEmailStatus(
+    id,
+    SEND_EMAIL_STATUS.SUCCESS,
+    'Email undangan berhasil dikirim',
+    {
+      messageId: info.messageId || null,
+      response: info.response || null,
+      accepted: info.accepted || [],
+      rejected: info.rejected || [],
+      envelope: info.envelope || null
+    }
+  )
+
+  return { invitation, applicant_form_url: applicantFormUrl, email_sent: true, ...sendStatus }
 }
 
 /**
@@ -274,12 +335,64 @@ const completeInvitation = async (token, applicantFormId) => {
   return await repository.markCompleted(invitation.id, applicantFormId)
 }
 
+const UPDATABLE_COLUMNS = [
+  'full_name',
+  'email',
+  'no_mobile',
+  'status_send_email',
+  'response_send_email',
+  'is_completed',
+  'applicant_form_id'
+]
+
+/**
+ * Update data invitation. Hanya kolom yang dikirim di payload yang di-update,
+ * kolom yang tidak dikirim dibiarkan apa adanya.
+ */
+const updateInvitation = async (id, payload = {}, user) => {
+  const existing = await repository.findById(id)
+
+  if (!existing) {
+    throw { message: 'Undangan tidak ditemukan', statusCode: 404 }
+  }
+
+  const data = {}
+  for (const column of UPDATABLE_COLUMNS) {
+    if (!Object.prototype.hasOwnProperty.call(payload, column)) continue
+    data[column] = payload[column]
+  }
+
+  if (Object.keys(data).length === 0) {
+    throw { message: 'Tidak ada data yang di-update', statusCode: 400 }
+  }
+
+  if ('full_name' in data) data.full_name = normalizeOptionalString(data.full_name)
+  if ('email' in data) data.email = normalizeOptionalString(data.email)
+  if ('no_mobile' in data) data.no_mobile = normalizeOptionalString(data.no_mobile)
+  if ('status_send_email' in data) data.status_send_email = normalizeOptionalString(data.status_send_email)
+  if ('applicant_form_id' in data) data.applicant_form_id = normalizeOptionalString(data.applicant_form_id)
+
+  if ('response_send_email' in data && data.response_send_email !== null && typeof data.response_send_email === 'object') {
+    data.response_send_email = JSON.stringify(data.response_send_email)
+  }
+
+  if ('is_completed' in data) {
+    data.is_completed = data.is_completed === true || data.is_completed === 'true'
+    data.completed_at = data.is_completed ? new Date() : null
+  }
+
+  data.updated_by = getRequesterId(user)
+
+  return await repository.update(id, data)
+}
+
 const getInvitations = async (params) => {
   return await repository.findAll(params)
 }
 
 module.exports = {
   createInvitation,
+  updateInvitation,
   sendInvitationEmail,
   verifyAccessToken,
   verifyAccessTokenWithUploads,

@@ -118,7 +118,18 @@ class Mail {
     } catch (err) {
       console.log(err)
       logger(`${option.subject.toLowerCase().replaceAll(' ', '')}.txt`, 'mail').write(`[FAILED] Subject: ${option.subject}, Recipient: "${option.to}", Message: ${err.message}.\n`)
-      return { status: false, message: err.message, data: {} };
+      return {
+        status: false,
+        message: err.message,
+        data: {},
+        // Detail error dari provider (nodemailer/SMTP), kalau ada
+        error: {
+          code: err.code || null,
+          command: err.command || null,
+          responseCode: err.responseCode || null,
+          response: err.response || null
+        }
+      };
     }
   }
 

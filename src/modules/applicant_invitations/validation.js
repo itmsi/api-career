@@ -21,6 +21,40 @@ const createValidation = [
     .trim()
 ]
 
+// Semua field opsional: hanya field yang dikirim yang akan di-update.
+// full_name/email/no_mobile NOT NULL di DB, jadi kalau dikirim tidak boleh kosong.
+const updateValidation = [
+  param('id').notEmpty().withMessage('ID wajib diisi').isUUID().withMessage('Format ID tidak valid'),
+  body('full_name')
+    .optional()
+    .isString().withMessage('full_name harus berupa teks')
+    .trim()
+    .isLength({ min: 3, max: 150 }).withMessage('full_name harus antara 3-150 karakter'),
+  body('email')
+    .optional()
+    .isString().withMessage('email harus berupa teks')
+    .trim()
+    .isEmail().withMessage('email harus valid'),
+  body('no_mobile')
+    .optional()
+    .isString().withMessage('no_mobile harus berupa teks')
+    .trim()
+    .isLength({ min: 8, max: 20 }).withMessage('no_mobile harus antara 8-20 karakter'),
+  body('status_send_email')
+    .optional({ nullable: true })
+    .isIn(['Process', 'Success', 'Failed']).withMessage('status_send_email harus Process, Success, atau Failed'),
+  body('response_send_email')
+    .optional({ nullable: true })
+    .custom((value) => typeof value === 'string' || typeof value === 'object')
+    .withMessage('response_send_email harus berupa teks atau object'),
+  body('is_completed')
+    .optional()
+    .isBoolean().withMessage('is_completed harus boolean'),
+  body('applicant_form_id')
+    .optional({ nullable: true })
+    .isUUID().withMessage('Format applicant_form_id tidak valid')
+]
+
 const getByIdValidation = [
   param('id').notEmpty().withMessage('ID wajib diisi').isUUID().withMessage('Format ID tidak valid')
 ]
@@ -40,6 +74,7 @@ const getListValidation = [
 
 module.exports = {
   createValidation,
+  updateValidation,
   getByIdValidation,
   verifyTokenValidation,
   getListValidation
