@@ -75,6 +75,14 @@ const updateSpeechTextValidation = [
     .optional({ nullable: true })
     .isString()
     .withMessage("transcription_id harus berupa teks"),
+  body("summary")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("summary harus berupa teks"),
+  body("summary_update")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("summary_update harus berupa teks"),
 ];
 
 const getByIdValidation = [
