@@ -117,17 +117,34 @@ const buildInvitationText = ({ firstName, applicantFormUrl, expiresAt }) => [
  * HR input nama, email, no_mobile -> generate invitation + token
  */
 const createInvitation = async (payload, user) => {
+  const data = buildPayload(payload)
+
+  // Email sudah pernah diundang:
+  // - undangan sudah diselesaikan (completed) -> tolak, tidak bisa diundang ulang
+  // - token undangan lama belum expired -> tolak
+  // - token sudah expired -> email undangan lama di-rename jadi
+  //   <email>-expiret-<n> (di repository.create) lalu undangan baru dibuat
+  const invitations = await repository.findByEmail(data.email)
+  if (invitations.some((invitation) => invitation.is_completed)) {
+    throw { message: 'Email ini sudah menyelesaikan undangan sebelumnya dan tidak bisa diundang ulang', statusCode: 409 }
+  }
+
+  const existing = invitations[0] || null
+  if (existing && new Date(existing.token_expires_at) > new Date()) {
+    throw { message: 'Undangan aktif untuk email ini sudah ada dan belum kedaluwarsa', statusCode: 409 }
+  }
+
   const invitationId = crypto.randomUUID()
   const { token, expiresAt } = generateAccessToken(invitationId)
   const authorId = getRequesterId(user)
 
   const created = await repository.create({
     id: invitationId,
-    ...buildPayload(payload),
+    ...data,
     token,
     token_expires_at: expiresAt,
     created_by: authorId
-  })
+  }, existing)
 
   return {
     ...created,

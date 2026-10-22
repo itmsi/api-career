@@ -85,7 +85,44 @@ const findByToken = async (token) => {
     .first()
 }
 
-const create = async (data = {}) => {
+// Semua undangan (belum dihapus) yang masih memakai email ini,
+// dipakai untuk validasi duplikat email saat create.
+const findByEmail = async (email) => {
+  return await pgCore(TABLE_NAME)
+    .select(SELECT_COLUMNS)
+    .whereRaw('lower(email) = lower(?)', [email])
+    .where({ is_delete: false, deleted_at: null })
+    .orderBy('created_at', 'desc')
+}
+
+const EXPIRED_EMAIL_SEPARATOR = '-expiret-'
+
+// Ganti email undangan yang sudah expired jadi <email>-expiret-<n>, n
+// melanjutkan nomor terakhir untuk email yang sama, supaya bisa dilihat
+// berapa kali email tsb pernah diundang dan expired.
+const markEmailExpired = async (trx, id, email) => {
+  const prefix = `${email}${EXPIRED_EMAIL_SEPARATOR}`.toLowerCase()
+  const rows = await trx(TABLE_NAME)
+    .select('email')
+    .whereRaw('left(lower(email), ?) = ?', [prefix.length, prefix])
+
+  const lastNumber = rows.reduce((max, row) => {
+    const number = parseInt(row.email.slice(prefix.length), 10)
+    return Number.isInteger(number) && number > max ? number : max
+  }, 0)
+
+  await trx(TABLE_NAME)
+    .where({ id })
+    .update({
+      email: `${email}${EXPIRED_EMAIL_SEPARATOR}${lastNumber + 1}`,
+      updated_at: trx.fn.now()
+    })
+}
+
+// `expiredInvitation` (opsional): undangan lama dengan email yang sama yang
+// tokennya sudah expired. Email-nya di-rename dulu lalu data baru di-insert,
+// dalam satu transaksi supaya rename batal kalau insert gagal.
+const create = async (data = {}, expiredInvitation = null) => {
   const payload = {
     id: data.id,
     full_name: normalizeNullableValue(data.full_name),
@@ -102,8 +139,14 @@ const create = async (data = {}) => {
   }
 
   try {
-    const [inserted] = await pgCore(TABLE_NAME).insert(payload).returning('id')
-    return await findById(inserted.id)
+    const insertedId = await pgCore.transaction(async (trx) => {
+      if (expiredInvitation) {
+        await markEmailExpired(trx, expiredInvitation.id, expiredInvitation.email)
+      }
+      const [inserted] = await trx(TABLE_NAME).insert(payload).returning('id')
+      return inserted.id
+    })
+    return await findById(insertedId)
   } catch (error) {
     // Kode 23505 = unique_violation. Ditangkap di sini (bukan dicek dulu
     // baru insert) supaya aman dari race condition kalau ada dua request
@@ -255,6 +298,7 @@ module.exports = {
   findAll,
   findById,
   findByToken,
+  findByEmail,
   findUploadedFilesByCreator,
   findUploadedContentsByCreator,
   findLatestSignatureByCreator,
