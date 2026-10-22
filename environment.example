@@ -221,6 +221,9 @@ APPLICANT_FORM_URL=https://career.motorsights.com/applicant-form
 SPEECH_TO_TEXT_URL=https://dev-api-mosa.motorsights.com/api/mosa/ai-assistant/speech-to-text
 # Bearer token API speech to text. Kosong = pakai token undangan applicant-form dari request create
 SPEECH_TO_TEXT_TOKEN=
+# API summarize, dipanggil setelah hit speech to text kalau content sudah punya transcription_id
+SUMMARIZE_ENABLED=false
+SUMMARIZE_URL=https://dev-api-mosa.motorsights.com/api/mosa/ai-assistant/summarize
 
 # ===========================================
 # Localization Configuration

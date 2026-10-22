@@ -14,6 +14,7 @@ const {
   toMessage: toSpeechTextMessage,
   hitSpeechToText,
 } = require("../applicant_forms/speech_to_text");
+const { SUMMARIZE_ENABLED, hitSummarize } = require("./summarize");
 
 const FILE_DIR = `${NEXTCLOUD_UPLOAD_DIR}/ApplicantContents`;
 
@@ -117,7 +118,8 @@ const getContentByAudioLink = async (fileLinkAudio) => {
 
 // Proses ulang speech to text satu audio: tandai Pending, lalu hit API
 // speech to text di background. Hasil transcript dikirim service AI lewat
-// POST /update-stt
+// POST /update-stt. Kalau hit berhasil dan content sudah punya
+// transcription_id, lanjut hit API summarize.
 const processSpeechText = async (fileLinkAudio, user, token) => {
   const existing = await repository.findByAudioLink(
     normalizeOptionalString(fileLinkAudio),
@@ -136,7 +138,12 @@ const processSpeechText = async (fileLinkAudio, user, token) => {
   const authToken = process.env.SPEECH_TO_TEXT_TOKEN || token;
   hitSpeechToText(existing.id, existing.file_link_audio, authToken)
     .then(async (result) => {
-      if (result.ok) return;
+      if (result.ok) {
+        if (SUMMARIZE_ENABLED && existing.transcription_id) {
+          await hitSummarize(existing.id, existing.transcription_id, authToken);
+        }
+        return;
+      }
       const httpInfo = result.httpStatus ? ` (HTTP ${result.httpStatus})` : "";
       await repository.updateSpeechTextById(existing.id, {
         status_speech_text: SPEECH_TEXT_STATUS.FAILED,
