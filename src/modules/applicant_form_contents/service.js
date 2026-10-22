@@ -275,6 +275,9 @@ const updateSpeechText = async (payload, user) => {
   if (payload.message_speech_text !== undefined) {
     data.message_speech_text = truncateMessage(payload.message_speech_text);
   }
+  if (payload.transcription_id !== undefined) {
+    data.transcription_id = normalizeOptionalString(payload.transcription_id);
+  }
 
   const updated = await repository.updateSpeechTextByAudioLink(
     fileLinkAudio,
@@ -291,6 +294,7 @@ const updateSpeechText = async (payload, user) => {
     speech_text: item.speech_text,
     status_speech_text: item.status_speech_text,
     message_speech_text: item.message_speech_text,
+    transcription_id: item.transcription_id,
     updated_at: item.updated_at,
   }));
 };

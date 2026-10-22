@@ -25,6 +25,7 @@ const SELECT_COLUMNS = [
   "speech_text",
   "status_speech_text",
   "message_speech_text",
+  "transcription_id",
   "step",
   "questions",
   "created_at",

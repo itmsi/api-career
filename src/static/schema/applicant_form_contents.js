@@ -18,6 +18,7 @@ const applicantFormContentsSchema = {
       speech_text: { type: 'string', nullable: true, example: 'Perkenalkan, nama saya ...' },
       status_speech_text: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], description: 'Status proses speech to text file audio', example: 'Success' },
       message_speech_text: { type: 'string', nullable: true, description: 'Pesan/respon terakhir dari API speech to text (dipotong maksimal 2000 karakter)' },
+      transcription_id: { type: 'string', nullable: true, description: 'ID transcription dari service speech to text', example: 'trx-20261022-0001' },
       step: { type: 'string', nullable: true, description: 'Step dari master question (diisi otomatis saat applicant form dibuat/diupdate)', example: '1' },
       questions: {
         type: 'array',
@@ -66,7 +67,8 @@ const applicantFormContentsSchema = {
       file_link_audio: { type: 'string', example: 'https://cloud.motorsights.com/s/AmjNdn8gmC7t96t' },
       speech_text: { type: 'string', nullable: true, example: 'Perkenalkan, nama saya ...' },
       status_speech_text: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], example: 'Success' },
-      message_speech_text: { type: 'string', nullable: true, example: 'Transcribe berhasil' }
+      message_speech_text: { type: 'string', nullable: true, example: 'Transcribe berhasil' },
+      transcription_id: { type: 'string', nullable: true, description: 'ID transcription dari service speech to text', example: 'trx-20261022-0001' }
     }
   },
   ApplicantFormContentSpeechTextResult: {
@@ -78,6 +80,7 @@ const applicantFormContentsSchema = {
       speech_text: { type: 'string', nullable: true, example: 'Perkenalkan, nama saya ...' },
       status_speech_text: { type: 'string', nullable: true, example: 'Success' },
       message_speech_text: { type: 'string', nullable: true, example: 'Transcribe berhasil' },
+      transcription_id: { type: 'string', nullable: true, example: 'trx-20261022-0001' },
       updated_at: { type: 'string', format: 'date-time', example: '2026-10-16T07:30:00.000Z' }
     }
   },

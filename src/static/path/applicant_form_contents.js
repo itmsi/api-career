@@ -130,7 +130,7 @@ const applicantFormContentsPaths = {
     post: {
       tags: ['Applicant Form Contents'],
       summary: 'Update hasil speech to text',
-      description: 'Update speech_text, status_speech_text dan message_speech_text untuk content yang file_link_audio-nya sama. Field selain file_link_audio opsional; yang tidak dikirim tidak diubah. message_speech_text dipotong maksimal 2000 karakter.',
+      description: 'Update speech_text, status_speech_text, message_speech_text dan transcription_id untuk content yang file_link_audio-nya sama. Field selain file_link_audio opsional; yang tidak dikirim tidak diubah. message_speech_text dipotong maksimal 2000 karakter.',
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
