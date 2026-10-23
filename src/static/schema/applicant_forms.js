@@ -92,6 +92,8 @@ const applicantFormsSchema = {
       signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Share link Nextcloud dari file signature yang terakhir diupload' },
       signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
       summary_all: { type: 'string', nullable: true, description: 'Ringkasan keseluruhan kandidat', example: 'Kandidat komunikatif dan berpengalaman ...' },
+      summary_all_status: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], description: 'Status proses summarize all', example: 'Success' },
+      summary_all_message: { type: 'string', nullable: true, description: 'Pesan proses summarize all', example: 'Proses created summary all on AI' },
       is_delete: { type: 'boolean', nullable: true, example: false }
     }
   },
@@ -247,6 +249,8 @@ const applicantFormsSchema = {
       signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Share link Nextcloud dari file signature yang terakhir diupload (dikelola lewat endpoint /applicant-form-signatures)' },
       signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
       summary_all: { type: 'string', nullable: true, description: 'Ringkasan keseluruhan kandidat', example: 'Kandidat komunikatif dan berpengalaman ...' },
+      summary_all_status: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], description: 'Status proses summarize all', example: 'Success' },
+      summary_all_message: { type: 'string', nullable: true, description: 'Pesan proses summarize all', example: 'Proses created summary all on AI' },
       created_at: { type: 'string', format: 'date-time' },
       created_by: { type: 'string', nullable: true },
       updated_at: { type: 'string', format: 'date-time' },

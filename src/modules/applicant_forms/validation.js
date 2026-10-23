@@ -136,11 +136,16 @@ const getByIdValidation = [
 
 const summaryAllValidation = [
   body('transcription_id').notEmpty().withMessage('transcription_id wajib diisi').isString().withMessage('transcription_id harus berupa teks').trim(),
-  body('summary').custom((value) => {
-    if (value === undefined) throw new Error('summary wajib dikirim')
-    if (value !== null && typeof value !== 'string') throw new Error('summary harus berupa teks')
+  body().custom((value) => {
+    const fields = ['summary', 'summary_all_status', 'summary_all_message']
+    if (!fields.some((field) => value?.[field] !== undefined)) {
+      throw new Error('Minimal salah satu dari summary, summary_all_status, summary_all_message wajib dikirim')
+    }
     return true
-  })
+  }),
+  body('summary').optional({ nullable: true }).isString().withMessage('summary harus berupa teks'),
+  body('summary_all_status').optional({ nullable: true }).isIn(['Pending', 'Success', 'Failed']).withMessage('summary_all_status harus Pending, Success, atau Failed'),
+  body('summary_all_message').optional({ nullable: true }).isString().withMessage('summary_all_message harus berupa teks')
 ]
 
 const createSummarizeAllValidation = [

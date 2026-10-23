@@ -137,7 +137,7 @@ const applicantFormsPaths = {
       tags: ["Applicant Forms"],
       summary: "Update summary_all applicant form berdasarkan transcription_id",
       description:
-        "Cari applicant_form_contents berdasarkan transcription_id, ambil applicant_form_id-nya, lalu update applicant_forms.summary_all (id = applicant_form_id) dengan summary yang dikirim. Kirim summary null untuk mengosongkan summary_all.",
+        "Cari applicant_form_contents berdasarkan transcription_id, ambil applicant_form_id-nya, lalu update applicant_forms (id = applicant_form_id): summary -> summary_all, summary_all_status, summary_all_message. Semua field selain transcription_id opsional (minimal satu dikirim); yang tidak dikirim tidak diubah, kirim null untuk mengosongkan.",
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
@@ -145,7 +145,7 @@ const applicantFormsPaths = {
           "application/json": {
             schema: {
               type: "object",
-              required: ["transcription_id", "summary"],
+              required: ["transcription_id"],
               properties: {
                 transcription_id: {
                   type: "string",
@@ -157,6 +157,19 @@ const applicantFormsPaths = {
                   nullable: true,
                   example: "Kandidat komunikatif dan berpengalaman ...",
                   description: "Disimpan ke applicant_forms.summary_all",
+                },
+                summary_all_status: {
+                  type: "string",
+                  nullable: true,
+                  enum: ["Pending", "Success", "Failed"],
+                  example: "Success",
+                  description: "Disimpan ke applicant_forms.summary_all_status",
+                },
+                summary_all_message: {
+                  type: "string",
+                  nullable: true,
+                  example: "Summary all berhasil dibuat",
+                  description: "Disimpan ke applicant_forms.summary_all_message",
                 },
               },
             },
@@ -194,6 +207,12 @@ const applicantFormsPaths = {
                         nullable: true,
                         example: "Kandidat komunikatif dan berpengalaman ...",
                       },
+                      summary_all_status: { type: "string", nullable: true, example: "Success" },
+                      summary_all_message: {
+                        type: "string",
+                        nullable: true,
+                        example: "Summary all berhasil dibuat",
+                      },
                       updated_at: { type: "string", format: "date-time" },
                     },
                   },
@@ -226,7 +245,7 @@ const applicantFormsPaths = {
       tags: ["Applicant Forms"],
       summary: "Summarize all content applicant form",
       description:
-        "Ambil applicant_form_contents (applicant_form_id = id) yang sudah punya transcription_id, ambil instruction dari db_hrm_master_questions.prompt_ai_summary (applicant_form_contents.id_question = db_hrm_master_questions.id); kalau kosong memakai instruction default \"Tuliskan kelebihan dan kekurangan kandidat dalam bentuk poin\". Lalu hit API summarize-all (POST {SUMMARIZE_ALL_URL}, default SUMMARIZE_URL + \"-all\") dengan payload [{ transcription_id, instruction }]. Request menunggu response API lalu mengembalikannya. Token API memakai SPEECH_TO_TEXT_TOKEN, atau Bearer token request kalau env tidak diisi.",
+        "Ambil applicant_form_contents (applicant_form_id = id) yang sudah punya transcription_id, ambil instruction dari db_hrm_master_questions.prompt_ai_summary (applicant_form_contents.id_question = db_hrm_master_questions.id); kalau kosong memakai instruction default \"Tuliskan kelebihan dan kekurangan kandidat dalam bentuk poin\". Lalu hit API summarize-all (POST {SUMMARIZE_ALL_URL}, default SUMMARIZE_URL + \"-all\") dengan payload [{ transcription_id, instruction }]. Sebelum hit API, applicant_forms.summary_all_status diset Pending dan summary_all_message \"Proses created summary all on AI\"; kalau hit API gagal, status diset Failed beserta pesan error-nya. Hasil akhir dikirim service AI lewat POST /applicant-forms/summary-all. Request menunggu response API lalu mengembalikannya. Token API memakai SPEECH_TO_TEXT_TOKEN, atau Bearer token request kalau env tidak diisi.",
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
@@ -265,6 +284,11 @@ const applicantFormsPaths = {
                         format: "uuid",
                         example: "82957122-2eef-4461-b642-4de9e8d93876",
                         description: "applicant_forms.id",
+                      },
+                      summary_all_status: { type: "string", example: "Pending" },
+                      summary_all_message: {
+                        type: "string",
+                        example: "Proses created summary all on AI",
                       },
                       items: {
                         type: "array",

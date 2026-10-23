@@ -63,7 +63,7 @@ const updateSummaryAll = async (req, res) => {
 const createSummarizeAll = async (req, res) => {
   try {
     const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || null
-    const data = await service.createSummarizeAll(req.body, token)
+    const data = await service.createSummarizeAll(req.body, req.user, token)
     return successResponse(res, data, 'Summarize all berhasil')
   } catch (error) {
     return errorResponse(res, error?.message || error, error?.statusCode || 500)

@@ -7,6 +7,9 @@ const {
   hitSummarizeAll
 } = require('../applicant_form_contents/summarize')
 
+const SUMMARY_ALL_STATUS = { PENDING: 'Pending', SUCCESS: 'Success', FAILED: 'Failed' }
+const SUMMARY_ALL_PENDING_MESSAGE = 'Proses created summary all on AI'
+
 const APPLICANT_FORM_URL = process.env.APPLICANT_FORM_URL || 'https://career.motorsights.com/applicant-form'
 const buildApplicantFormUrl = (token) => (token ? `${APPLICANT_FORM_URL}/${token}` : null)
 
@@ -247,15 +250,23 @@ const updateSummaryAll = async (payload, user) => {
     throw { message: 'Data applicant form tidak ditemukan', statusCode: 404 }
   }
 
-  const updated = await repository.updateSummaryAll(
-    existingForm.id,
-    normalizeOptionalString(payload.summary),
-    getRequesterId(user)
-  )
+  // Hanya field yang dikirim yang diupdate
+  const data = {}
+  if (payload.summary !== undefined) data.summary_all = normalizeOptionalString(payload.summary)
+  if (payload.summary_all_status !== undefined) {
+    data.summary_all_status = normalizeOptionalString(payload.summary_all_status)
+  }
+  if (payload.summary_all_message !== undefined) {
+    data.summary_all_message = normalizeOptionalString(payload.summary_all_message)
+  }
+
+  const updated = await repository.updateSummaryAll(existingForm.id, data, getRequesterId(user))
   return {
     id: updated.id,
     transcription_id: transcriptionId,
     summary_all: updated.summary_all,
+    summary_all_status: updated.summary_all_status,
+    summary_all_message: updated.summary_all_message,
     updated_at: updated.updated_at
   }
 }
@@ -264,12 +275,17 @@ const updateSummaryAll = async (payload, user) => {
 // Content applicant form yang sudah punya transcription_id dikirim sekaligus
 // ke API summarize-all, dengan instruction dari prompt_ai_summary master
 // question (fallback ke instruction default).
-const createSummarizeAll = async (payload, token) => {
+const createSummarizeAll = async (payload, user, token) => {
   const id = normalizeOptionalString(payload.id)
   const contents = await repository.findTranscribedContentsByFormId(id)
   if (!contents.length) {
     throw { message: 'Tidak ada content dengan transcription_id untuk applicant form ini', statusCode: 404 }
   }
+
+  await repository.updateSummaryAll(id, {
+    summary_all_status: SUMMARY_ALL_STATUS.PENDING,
+    summary_all_message: SUMMARY_ALL_PENDING_MESSAGE
+  }, getRequesterId(user))
 
   // transcription_id yang sama cukup dikirim sekali
   const uniqueContents = [...new Map(contents.map((item) => [item.transcription_id, item])).values()]
@@ -282,11 +298,18 @@ const createSummarizeAll = async (payload, token) => {
   if (!result.ok) {
     const httpInfo = result.httpStatus ? ` (HTTP ${result.httpStatus})` : ''
     const detail = result.data ? JSON.stringify(result.data) : result.reason
-    throw { message: `Gagal hit API summarize-all${httpInfo}: ${detail ?? '-'}`, statusCode: 502 }
+    const message = `Gagal hit API summarize-all${httpInfo}: ${detail ?? '-'}`
+    await repository.updateSummaryAll(id, {
+      summary_all_status: SUMMARY_ALL_STATUS.FAILED,
+      summary_all_message: message
+    }, getRequesterId(user))
+    throw { message, statusCode: 502 }
   }
 
   return {
     id,
+    summary_all_status: SUMMARY_ALL_STATUS.PENDING,
+    summary_all_message: SUMMARY_ALL_PENDING_MESSAGE,
     items: items.map((item) => ({
       content_id: item.id,
       id_question: item.id_question,

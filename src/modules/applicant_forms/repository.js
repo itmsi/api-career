@@ -41,6 +41,8 @@ const SELECT_COLUMNS = [
   'signature_link',
   'signature_date',
   'summary_all',
+  'summary_all_status',
+  'summary_all_message',
   'created_at',
   'created_by',
   'updated_at',
@@ -452,15 +454,16 @@ const findTranscribedContentsByFormId = async (applicantFormId) => {
     .orderBy('created_at', 'asc')
 }
 
-const updateSummaryAll = async (id, summaryAll, updatedBy) => {
+// data: summary_all / summary_all_status / summary_all_message (partial)
+const updateSummaryAll = async (id, data = {}, updatedBy) => {
   const [updated] = await pgCore(TABLE_NAME)
     .where({ id, deleted_at: null })
     .update({
-      summary_all: summaryAll,
+      ...data,
       updated_by: updatedBy || null,
       updated_at: pgCore.fn.now()
     })
-    .returning(['id', 'summary_all', 'updated_at'])
+    .returning(['id', 'summary_all', 'summary_all_status', 'summary_all_message', 'updated_at'])
 
   return updated || null
 }
