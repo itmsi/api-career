@@ -92,17 +92,18 @@ const getContentById = async (id) => {
 };
 
 const buildAudioResult = (data) => ({
-    id: data.id,
-    applicant_form_id: data.applicant_form_id,
-    id_question: data.id_question,
-    file_title_audio: data.file_title_audio,
-    file_type_audio: data.file_type_audio,
-    file_name_audio: data.file_name_audio,
-    nextcloud_path_audio: data.nextcloud_path_audio,
-    file_link_audio: data.file_link_audio,
-    speech_text: data.speech_text,
-    status_speech_text: data.status_speech_text,
-    message_speech_text: data.message_speech_text,
+  id: data.id,
+  applicant_form_id: data.applicant_form_id,
+  id_question: data.id_question,
+  file_title_audio: data.file_title_audio,
+  file_type_audio: data.file_type_audio,
+  file_name_audio: data.file_name_audio,
+  nextcloud_path_audio: data.nextcloud_path_audio,
+  file_link_audio: data.file_link_audio,
+  speech_text: data.speech_text,
+  status_speech_text: data.status_speech_text,
+  message_speech_text: data.message_speech_text,
+  summary: data.summary_update ?? data.summary,
 });
 
 const getContentByAudioLink = async (fileLinkAudio) => {
@@ -277,7 +278,9 @@ const updateSpeechText = async (payload, user) => {
     data.speech_text = payload.speech_text ?? null;
   }
   if (payload.status_speech_text !== undefined) {
-    data.status_speech_text = normalizeOptionalString(payload.status_speech_text);
+    data.status_speech_text = normalizeOptionalString(
+      payload.status_speech_text,
+    );
   }
   if (payload.message_speech_text !== undefined) {
     data.message_speech_text = truncateMessage(payload.message_speech_text);
