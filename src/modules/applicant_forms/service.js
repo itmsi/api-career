@@ -260,56 +260,42 @@ const updateSummaryAll = async (payload, user) => {
   }
 }
 
-// Hit API summarize-all per applicant form. Payload: [{ id: applicant_forms.id }].
-// Tiap form diambil content-nya yang sudah punya transcription_id, instruction
-// dari prompt_ai_summary master question (fallback ke instruction default),
-// lalu dikirim sekaligus ke API summarize-all. Hasil dikembalikan per form.
+// Hit API summarize-all untuk satu applicant form. Payload: { id: applicant_forms.id }.
+// Content applicant form yang sudah punya transcription_id dikirim sekaligus
+// ke API summarize-all, dengan instruction dari prompt_ai_summary master
+// question (fallback ke instruction default).
 const createSummarizeAll = async (payload, token) => {
-  const authToken = process.env.SPEECH_TO_TEXT_TOKEN || token
-  const ids = [...new Set(payload.map((item) => normalizeOptionalString(item?.id)))]
-  const results = []
-
-  for (const id of ids) {
-    const contents = await repository.findTranscribedContentsByFormId(id)
-    if (!contents.length) {
-      results.push({
-        id,
-        status: 'skipped',
-        message: 'Tidak ada content dengan transcription_id untuk applicant form ini',
-        items: [],
-        summarize: null
-      })
-      continue
-    }
-
-    // transcription_id yang sama cukup dikirim sekali
-    const uniqueContents = [...new Map(contents.map((item) => [item.transcription_id, item])).values()]
-    const items = await resolveInstructions(uniqueContents)
-    const result = await hitSummarizeAll(
-      id,
-      items.map((item) => ({ transcription_id: item.transcription_id, instruction: item.instruction })),
-      authToken
-    )
-
-    const httpInfo = result.httpStatus ? ` (HTTP ${result.httpStatus})` : ''
-    results.push({
-      id,
-      status: result.ok ? 'success' : 'failed',
-      message: result.ok
-        ? 'Summarize all berhasil'
-        : `Gagal hit API summarize-all${httpInfo}: ${result.reason ?? ''}`.trim(),
-      items: items.map((item) => ({
-        content_id: item.id,
-        id_question: item.id_question,
-        transcription_id: item.transcription_id,
-        instruction: item.instruction,
-        instruction_source: item.instruction_source
-      })),
-      summarize: result.data ?? null
-    })
+  const id = normalizeOptionalString(payload.id)
+  const contents = await repository.findTranscribedContentsByFormId(id)
+  if (!contents.length) {
+    throw { message: 'Tidak ada content dengan transcription_id untuk applicant form ini', statusCode: 404 }
   }
 
-  return results
+  // transcription_id yang sama cukup dikirim sekali
+  const uniqueContents = [...new Map(contents.map((item) => [item.transcription_id, item])).values()]
+  const items = await resolveInstructions(uniqueContents)
+  const result = await hitSummarizeAll(
+    id,
+    items.map((item) => ({ transcription_id: item.transcription_id, instruction: item.instruction })),
+    process.env.SPEECH_TO_TEXT_TOKEN || token
+  )
+  if (!result.ok) {
+    const httpInfo = result.httpStatus ? ` (HTTP ${result.httpStatus})` : ''
+    const detail = result.data ? JSON.stringify(result.data) : result.reason
+    throw { message: `Gagal hit API summarize-all${httpInfo}: ${detail ?? '-'}`, statusCode: 502 }
+  }
+
+  return {
+    id,
+    items: items.map((item) => ({
+      content_id: item.id,
+      id_question: item.id_question,
+      transcription_id: item.transcription_id,
+      instruction: item.instruction,
+      instruction_source: item.instruction_source
+    })),
+    summarize: result.data ?? null
+  }
 }
 
 // :id bisa berupa id undangan atau id applicant_forms (lihat updateApplicantForm).
