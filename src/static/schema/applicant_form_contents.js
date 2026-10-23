@@ -72,7 +72,9 @@ const applicantFormContentsSchema = {
       message_speech_text: { type: 'string', nullable: true, example: 'Transcribe berhasil' },
       transcription_id: { type: 'string', nullable: true, description: 'ID transcription dari service speech to text', example: 'trx-20261022-0001' },
       summary: { type: 'string', nullable: true, description: 'Ringkasan hasil speech to text', example: 'Pelamar memperkenalkan diri ...' },
-      summary_update: { type: 'string', nullable: true, description: 'Ringkasan hasil speech to text yang sudah diperbarui', example: 'Pelamar memperkenalkan diri ...' }
+      summary_update: { type: 'string', nullable: true, description: 'Ringkasan hasil speech to text yang sudah diperbarui', example: 'Pelamar memperkenalkan diri ...' },
+      status_summary: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], description: 'Status proses summarize', example: 'Success' },
+      message_summary: { type: 'string', nullable: true, description: 'Pesan proses summarize (maksimal 2000 karakter)', example: 'Summarize berhasil' }
     }
   },
   ApplicantFormContentSpeechTextResult: {
@@ -87,6 +89,8 @@ const applicantFormContentsSchema = {
       transcription_id: { type: 'string', nullable: true, example: 'trx-20261022-0001' },
       summary: { type: 'string', nullable: true, example: 'Pelamar memperkenalkan diri ...' },
       summary_update: { type: 'string', nullable: true, example: 'Pelamar memperkenalkan diri ...' },
+      status_summary: { type: 'string', nullable: true, example: 'Success' },
+      message_summary: { type: 'string', nullable: true, example: 'Summarize berhasil' },
       updated_at: { type: 'string', format: 'date-time', example: '2026-10-16T07:30:00.000Z' }
     }
   },
@@ -123,7 +127,10 @@ const applicantFormContentsSchema = {
       file_link_audio: { type: 'string', nullable: true, example: 'https://cloud.motorsights.com/s/4M6jZtj3FgWH38D' },
       speech_text: { type: 'string', nullable: true, example: 'Halo, perkenalkan nama saya ...' },
       status_speech_text: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], example: 'Success' },
-      message_speech_text: { type: 'string', nullable: true, example: 'Transcribe berhasil' }
+      message_speech_text: { type: 'string', nullable: true, example: 'Transcribe berhasil' },
+      summary: { type: 'string', nullable: true, description: 'summary_update, atau summary kalau summary_update kosong', example: 'Pelamar memperkenalkan diri ...' },
+      status_summary: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], example: 'Success' },
+      message_summary: { type: 'string', nullable: true, example: 'Summarize berhasil' }
     }
   },
   ApplicantFormContentResult: {

@@ -104,6 +104,8 @@ const buildAudioResult = (data) => ({
   status_speech_text: data.status_speech_text,
   message_speech_text: data.message_speech_text,
   summary: data.summary_update ?? data.summary,
+  status_summary: data.status_summary,
+  message_summary: data.message_summary,
 });
 
 const getContentByAudioLink = async (fileLinkAudio) => {
@@ -342,6 +344,12 @@ const updateSpeechText = async (payload, user) => {
   if (payload.summary_update !== undefined) {
     data.summary_update = payload.summary_update ?? null;
   }
+  if (payload.status_summary !== undefined) {
+    data.status_summary = normalizeOptionalString(payload.status_summary);
+  }
+  if (payload.message_summary !== undefined) {
+    data.message_summary = truncateMessage(payload.message_summary);
+  }
 
   const updated = await repository.updateSpeechTextByAudioLink(
     fileLinkAudio,
@@ -361,6 +369,8 @@ const updateSpeechText = async (payload, user) => {
     transcription_id: item.transcription_id,
     summary: item.summary,
     summary_update: item.summary_update,
+    status_summary: item.status_summary,
+    message_summary: item.message_summary,
     updated_at: item.updated_at,
   }));
 };

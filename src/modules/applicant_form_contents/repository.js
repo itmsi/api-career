@@ -28,6 +28,8 @@ const SELECT_COLUMNS = [
   "transcription_id",
   "summary",
   "summary_update",
+  "status_summary",
+  "message_summary",
   "step",
   "questions",
   "created_at",

@@ -83,6 +83,14 @@ const updateSpeechTextValidation = [
     .optional({ nullable: true })
     .isString()
     .withMessage("summary_update harus berupa teks"),
+  body("status_summary")
+    .optional({ nullable: true })
+    .isIn(["Pending", "Success", "Failed"])
+    .withMessage("status_summary harus Pending, Success, atau Failed"),
+  body("message_summary")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("message_summary harus berupa teks"),
 ];
 
 const getByIdValidation = [
