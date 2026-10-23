@@ -167,6 +167,49 @@ const processSpeechText = async (fileLinkAudio, user, token) => {
   return buildAudioResult(updated);
 };
 
+// Hit API summarize manual untuk satu audio. Instruction memakai
+// prompt_ai_summary master question (id_question content), fallback ke
+// instruction default. Hasil summarize dikembalikan langsung di response.
+const summarizeContent = async (fileLinkAudio, token) => {
+  const existing = await repository.findByAudioLink(
+    normalizeOptionalString(fileLinkAudio),
+  );
+  if (!existing) {
+    throw { message: "Data content tidak ditemukan", statusCode: 404 };
+  }
+  if (!existing.transcription_id) {
+    throw {
+      message: "Content belum memiliki transcription_id",
+      statusCode: 422,
+    };
+  }
+
+  const authToken = process.env.SPEECH_TO_TEXT_TOKEN || token;
+  const result = await hitSummarize(
+    existing.id,
+    existing.transcription_id,
+    authToken,
+    existing.id_question,
+  );
+  if (!result.ok) {
+    const httpInfo = result.httpStatus ? ` (HTTP ${result.httpStatus})` : "";
+    throw {
+      message: `Gagal hit API summarize${httpInfo}: ${toSpeechTextMessage(result.data ?? result.reason)}`,
+      statusCode: 502,
+    };
+  }
+
+  return {
+    id: existing.id,
+    id_question: existing.id_question,
+    file_link_audio: existing.file_link_audio,
+    transcription_id: existing.transcription_id,
+    instruction: result.instruction,
+    instruction_source: result.instructionSource,
+    summarize: result.data,
+  };
+};
+
 const createContent = async (payload, files, user) => {
   const authorId = getRequesterId(user);
   const data = {
@@ -343,6 +386,7 @@ module.exports = {
   getContentById,
   getContentByAudioLink,
   processSpeechText,
+  summarizeContent,
   createContent,
   updateContent,
   updateSpeechText,

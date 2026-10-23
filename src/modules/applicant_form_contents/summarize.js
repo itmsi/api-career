@@ -42,8 +42,10 @@ const resolveInstruction = async (contentId, idQuestion) => {
 const hitSummarize = async (contentId, transcriptionId, token, idQuestion) => {
   const startedAt = Date.now();
   const instruction = await resolveInstruction(contentId, idQuestion);
+  const instructionSource =
+    instruction === SUMMARIZE_INSTRUCTION ? "default" : "master_questions";
   console.info(
-    `${LOG_PREFIX} [START] content_id=${contentId} POST ${SUMMARIZE_URL} transcription_id=${transcriptionId} id_question=${idQuestion ?? "-"} instruction_source=${instruction === SUMMARIZE_INSTRUCTION ? "default" : "master_questions"}`,
+    `${LOG_PREFIX} [START] content_id=${contentId} POST ${SUMMARIZE_URL} transcription_id=${transcriptionId} id_question=${idQuestion ?? "-"} instruction_source=${instructionSource}`,
   );
 
   try {
@@ -62,13 +64,20 @@ const hitSummarize = async (contentId, transcriptionId, token, idQuestion) => {
     console.info(
       `${LOG_PREFIX} [SUCCESS] content_id=${contentId} http=${response.status} durasi=${Date.now() - startedAt}ms\n${formatBody(response.data)}`,
     );
-    return { ok: true, data: response.data };
+    return { ok: true, data: response.data, instruction, instructionSource };
   } catch (error) {
     const httpStatus = error?.response?.status ?? null;
     console.error(
       `${LOG_PREFIX} [FAILED] content_id=${contentId} http=${httpStatus ?? "-"} durasi=${Date.now() - startedAt}ms\n${formatBody(error?.response?.data ?? error?.message)}`,
     );
-    return { ok: false, httpStatus };
+    return {
+      ok: false,
+      httpStatus,
+      data: error?.response?.data ?? null,
+      reason: error?.message ?? null,
+      instruction,
+      instructionSource,
+    };
   }
 };
 

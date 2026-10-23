@@ -90,6 +90,25 @@ const applicantFormContentsSchema = {
       updated_at: { type: 'string', format: 'date-time', example: '2026-10-16T07:30:00.000Z' }
     }
   },
+  ApplicantFormContentSummarizeInput: {
+    type: 'object',
+    required: ['file_link_audio'],
+    properties: {
+      file_link_audio: { type: 'string', description: 'file_link_audio lengkap atau token share Nextcloud', example: 'https://cloud.motorsights.com/s/4M6jZtj3FgWH38D' }
+    }
+  },
+  ApplicantFormContentSummarizeResult: {
+    type: 'object',
+    properties: {
+      id: { type: 'string', format: 'uuid', example: 'dd096cc0-4365-431a-aeee-dd625df52535' },
+      id_question: { type: 'string', format: 'uuid', nullable: true, example: '2aa0963e-b2d2-44f7-adc8-87ec0a6255d2' },
+      file_link_audio: { type: 'string', example: 'https://cloud.motorsights.com/s/4M6jZtj3FgWH38D' },
+      transcription_id: { type: 'string', example: '72058640-5531-4c30-8213-faf94cc1f943' },
+      instruction: { type: 'string', description: 'Instruction yang dikirim ke API summarize', example: 'Tuliskan kelebihan dan kekurangan kandidat dalam bentuk poin' },
+      instruction_source: { type: 'string', enum: ['master_questions', 'default'], description: 'master_questions = dari db_hrm_master_questions.prompt_ai_summary, default = instruction statis', example: 'master_questions' },
+      summarize: { type: 'object', nullable: true, description: 'Response mentah dari API summarize', additionalProperties: true }
+    }
+  },
   ApplicantFormContentAudio: {
     type: 'object',
     description: 'Data audio & hasil speech to text dari sebuah content',

@@ -102,6 +102,15 @@ const getByAudioLinkValidation = [
     .trim(),
 ];
 
+const summarizeValidation = [
+  body("file_link_audio")
+    .notEmpty()
+    .withMessage("file_link_audio wajib diisi")
+    .isString()
+    .withMessage("file_link_audio harus berupa teks")
+    .trim(),
+];
+
 const getListValidation = [
   body("page")
     .optional()
@@ -129,5 +138,6 @@ module.exports = {
   updateSpeechTextValidation,
   getByIdValidation,
   getByAudioLinkValidation,
+  summarizeValidation,
   getListValidation,
 };
