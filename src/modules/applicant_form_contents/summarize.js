@@ -1,8 +1,12 @@
 const axios = require("axios");
+const masterQuestionsRepository = require("../master_questions/repository");
 
 /**
  * Hit API summarize untuk content yang sudah punya transcription_id.
  * Dipanggil setelah hit speech to text berhasil (POST /audio/:file_link_audio).
+ * Instruction diambil dari db_hrm_master_questions.prompt_ai_summary
+ * berdasarkan id_question content, fallback ke SUMMARIZE_INSTRUCTION kalau
+ * id_question / prompt_ai_summary kosong.
  * Error tidak dilempar, hanya dicatat di log.
  */
 
@@ -21,16 +25,31 @@ const formatBody = (body) => {
   return typeof body === "string" ? body : JSON.stringify(body, null, 2);
 };
 
-const hitSummarize = async (contentId, transcriptionId, token) => {
+const resolveInstruction = async (contentId, idQuestion) => {
+  if (!idQuestion) return SUMMARIZE_INSTRUCTION;
+  try {
+    const prompt =
+      await masterQuestionsRepository.findPromptAiSummaryById(idQuestion);
+    if (typeof prompt === "string" && prompt.trim() !== "") return prompt.trim();
+  } catch (error) {
+    console.error(
+      `${LOG_PREFIX} [PROMPT][ERROR] content_id=${contentId} id_question=${idQuestion}: ${error?.message || error}`,
+    );
+  }
+  return SUMMARIZE_INSTRUCTION;
+};
+
+const hitSummarize = async (contentId, transcriptionId, token, idQuestion) => {
   const startedAt = Date.now();
+  const instruction = await resolveInstruction(contentId, idQuestion);
   console.info(
-    `${LOG_PREFIX} [START] content_id=${contentId} POST ${SUMMARIZE_URL} transcription_id=${transcriptionId}`,
+    `${LOG_PREFIX} [START] content_id=${contentId} POST ${SUMMARIZE_URL} transcription_id=${transcriptionId} id_question=${idQuestion ?? "-"} instruction_source=${instruction === SUMMARIZE_INSTRUCTION ? "default" : "master_questions"}`,
   );
 
   try {
     const response = await axios.post(
       SUMMARIZE_URL,
-      { transcription_id: transcriptionId, instruction: SUMMARIZE_INSTRUCTION },
+      { transcription_id: transcriptionId, instruction },
       {
         timeout: REQUEST_TIMEOUT_MS,
         headers: {

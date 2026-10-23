@@ -80,8 +80,18 @@ const findByIds = async (ids = []) => {
     .where({ deleted_at: null });
 };
 
+// Ambil prompt_ai_summary master question, dipakai sebagai instruction summarize
+const findPromptAiSummaryById = async (id) => {
+  const row = await pgCore(TABLE_NAME)
+    .select("prompt_ai_summary")
+    .where({ id, deleted_at: null })
+    .first();
+  return row?.prompt_ai_summary ?? null;
+};
+
 module.exports = {
   findAll,
   findById,
   findByIds,
+  findPromptAiSummaryById,
 };

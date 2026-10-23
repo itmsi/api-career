@@ -141,7 +141,12 @@ const processSpeechText = async (fileLinkAudio, user, token) => {
     .then(async (result) => {
       if (result.ok) {
         if (SUMMARIZE_ENABLED && existing.transcription_id) {
-          await hitSummarize(existing.id, existing.transcription_id, authToken);
+          await hitSummarize(
+            existing.id,
+            existing.transcription_id,
+            authToken,
+            existing.id_question,
+          );
         }
         return;
       }
