@@ -132,6 +132,95 @@ const applicantFormsPaths = {
       },
     },
   },
+  "/applicant-forms/summary-all": {
+    post: {
+      tags: ["Applicant Forms"],
+      summary: "Update summary_all applicant form berdasarkan transcription_id",
+      description:
+        "Cari applicant_form_contents berdasarkan transcription_id, ambil applicant_form_id-nya, lalu update applicant_forms.summary_all (id = applicant_form_id) dengan summary yang dikirim. Kirim summary null untuk mengosongkan summary_all.",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "object",
+              required: ["transcription_id", "summary"],
+              properties: {
+                transcription_id: {
+                  type: "string",
+                  example: "72058640-5531-4c30-8213-faf94cc1f943",
+                  description: "applicant_form_contents.transcription_id",
+                },
+                summary: {
+                  type: "string",
+                  nullable: true,
+                  example: "Kandidat komunikatif dan berpengalaman ...",
+                  description: "Disimpan ke applicant_forms.summary_all",
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Summary berhasil diupdate",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: true },
+                  message: {
+                    type: "string",
+                    example: "Summary applicant form berhasil diupdate",
+                  },
+                  data: {
+                    type: "object",
+                    properties: {
+                      id: {
+                        type: "string",
+                        format: "uuid",
+                        example: "4509a494-0c6d-45ad-88fb-47f4eb7f0f70",
+                        description: "applicant_forms.id",
+                      },
+                      transcription_id: {
+                        type: "string",
+                        example: "72058640-5531-4c30-8213-faf94cc1f943",
+                      },
+                      summary_all: {
+                        type: "string",
+                        nullable: true,
+                        example: "Kandidat komunikatif dan berpengalaman ...",
+                      },
+                      updated_at: { type: "string", format: "date-time" },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Validation error",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+        },
+        401: {
+          description: "Unauthorized",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+        },
+        404: {
+          description: "Content dengan transcription_id tsb / applicant form tidak ditemukan",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+        },
+        422: {
+          description: "Content belum terhubung ke applicant form (applicant_form_id kosong)",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+        },
+      },
+    },
+  },
   "/applicant-forms/{id}": {
     get: {
       tags: ["Applicant Forms"],

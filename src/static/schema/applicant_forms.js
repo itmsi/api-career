@@ -91,6 +91,7 @@ const applicantFormsSchema = {
       applicant_form_contents: { type: 'array', nullable: true, items: applicantFormContentItem },
       signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Share link Nextcloud dari file signature yang terakhir diupload' },
       signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
+      summary_all: { type: 'string', nullable: true, description: 'Ringkasan keseluruhan kandidat', example: 'Kandidat komunikatif dan berpengalaman ...' },
       is_delete: { type: 'boolean', nullable: true, example: false }
     }
   },
@@ -245,6 +246,7 @@ const applicantFormsSchema = {
       },
       signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO', description: 'Share link Nextcloud dari file signature yang terakhir diupload (dikelola lewat endpoint /applicant-form-signatures)' },
       signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
+      summary_all: { type: 'string', nullable: true, description: 'Ringkasan keseluruhan kandidat', example: 'Kandidat komunikatif dan berpengalaman ...' },
       created_at: { type: 'string', format: 'date-time' },
       created_by: { type: 'string', nullable: true },
       updated_at: { type: 'string', format: 'date-time' },
@@ -352,7 +354,8 @@ const applicantFormsSchema = {
         }]
       },
       signature_link: { type: 'string', nullable: true, example: 'https://cloud.inlinegroupdc.com/s/AbCdEfGhIjKlMnO' },
-      signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' }
+      signature_date: { type: 'string', format: 'date', nullable: true, example: '2026-09-17' },
+      summary_all: { type: 'string', nullable: true, description: 'Ringkasan keseluruhan kandidat', example: 'Kandidat komunikatif dan berpengalaman ...' }
     }
   }
 }

@@ -51,6 +51,15 @@ const update = async (req, res) => {
   }
 }
 
+const updateSummaryAll = async (req, res) => {
+  try {
+    const data = await service.updateSummaryAll(req.body, req.user)
+    return successResponse(res, data, 'Summary applicant form berhasil diupdate')
+  } catch (error) {
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+  }
+}
+
 const remove = async (req, res) => {
   try {
     const { id } = req.params
@@ -66,5 +75,6 @@ module.exports = {
   getById,
   create,
   update,
+  updateSummaryAll,
   remove
 }

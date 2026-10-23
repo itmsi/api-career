@@ -40,6 +40,7 @@ const SELECT_COLUMNS = [
   'applicant_form_contents',
   'signature_link',
   'signature_date',
+  'summary_all',
   'created_at',
   'created_by',
   'updated_at',
@@ -293,6 +294,7 @@ const create = async (data = {}) => {
     applicant_form_contents: normalizeJsonValue(data.applicant_form_contents),
     signature_link: normalizeNullableValue(data.signature_link),
     signature_date: normalizeNullableValue(data.signature_date),
+    summary_all: normalizeNullableValue(data.summary_all),
     created_by: data.created_by || null,
     updated_by: data.updated_by || null,
     created_at: pgCore.fn.now(),
@@ -337,7 +339,8 @@ const update = async (id, data = {}) => {
     applicant_form_files: normalizeJsonValue(data.applicant_form_files),
     applicant_form_contents: normalizeJsonValue(data.applicant_form_contents),
     signature_link: normalizeNullableValue(data.signature_link),
-    signature_date: normalizeNullableValue(data.signature_date)
+    signature_date: normalizeNullableValue(data.signature_date),
+    summary_all: normalizeNullableValue(data.summary_all)
   }
   const payload = Object.keys(columns).reduce((acc, key) => {
     if (data[key] !== undefined) acc[key] = columns[key]
@@ -427,6 +430,30 @@ const linkContentsToForm = async (contents, applicantFormId) => {
   return total
 }
 
+// Dipakai POST /summary-all: cari content berdasarkan transcription_id,
+// prioritas yang sudah punya applicant_form_id lalu yang terbaru
+const findContentByTranscriptionId = async (transcriptionId) => {
+  return await pgCore('applicant_form_contents')
+    .select('id', 'applicant_form_id', 'transcription_id')
+    .where({ transcription_id: transcriptionId, deleted_at: null })
+    .orderByRaw('applicant_form_id is null')
+    .orderBy('created_at', 'desc')
+    .first()
+}
+
+const updateSummaryAll = async (id, summaryAll, updatedBy) => {
+  const [updated] = await pgCore(TABLE_NAME)
+    .where({ id, deleted_at: null })
+    .update({
+      summary_all: summaryAll,
+      updated_by: updatedBy || null,
+      updated_at: pgCore.fn.now()
+    })
+    .returning(['id', 'summary_all', 'updated_at'])
+
+  return updated || null
+}
+
 // Dipakai proses antrian speech to text (lihat ./speech_to_text.js)
 const updateSpeechText = async (contentId, data = {}) => {
   return await pgCore('applicant_form_contents')
@@ -461,6 +488,8 @@ module.exports = {
   linkSignaturesToForm,
   linkFilesToForm,
   linkContentsToForm,
+  findContentByTranscriptionId,
+  updateSummaryAll,
   updateSpeechText,
   updateNextcloudPath
 }

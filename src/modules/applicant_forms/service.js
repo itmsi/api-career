@@ -94,7 +94,8 @@ const buildPayload = async (payload = {}) => ({
   applicant_form_files: payload.applicant_form_files ?? null,
   applicant_form_contents: await enrichContentsWithQuestions(payload.applicant_form_contents),
   signature_link: normalizeOptionalString(payload.signature_link),
-  signature_date: normalizeOptionalString(payload.signature_date)
+  signature_date: normalizeOptionalString(payload.signature_date),
+  summary_all: normalizeOptionalString(payload.summary_all)
 })
 
 // Dipakai saat update: hanya field yang dikirim di payload yang diubah,
@@ -225,6 +226,36 @@ const updateApplicantForm = async (id, payload, user) => {
   return updated
 }
 
+// Update applicant_forms.summary_all berdasarkan transcription_id content:
+// applicant_form_contents.transcription_id -> applicant_form_id -> applicant_forms.id
+const updateSummaryAll = async (payload, user) => {
+  const transcriptionId = normalizeOptionalString(payload.transcription_id)
+  const content = await repository.findContentByTranscriptionId(transcriptionId)
+  if (!content) {
+    throw { message: 'Data content dengan transcription_id tsb tidak ditemukan', statusCode: 404 }
+  }
+  if (!content.applicant_form_id) {
+    throw { message: 'Content belum terhubung ke applicant form', statusCode: 422 }
+  }
+
+  const existingForm = await repository.findById(content.applicant_form_id)
+  if (!existingForm) {
+    throw { message: 'Data applicant form tidak ditemukan', statusCode: 404 }
+  }
+
+  const updated = await repository.updateSummaryAll(
+    existingForm.id,
+    normalizeOptionalString(payload.summary),
+    getRequesterId(user)
+  )
+  return {
+    id: updated.id,
+    transcription_id: transcriptionId,
+    summary_all: updated.summary_all,
+    updated_at: updated.updated_at
+  }
+}
+
 // :id bisa berupa id undangan atau id applicant_forms (lihat updateApplicantForm).
 // Soft delete dilakukan ke applicant_form_invitations, dan ke applicant_forms
 // juga kalau form-nya sudah pernah diisi.
@@ -256,5 +287,6 @@ module.exports = {
   getApplicantFormById,
   createApplicantForm,
   updateApplicantForm,
+  updateSummaryAll,
   deleteApplicantForm
 }

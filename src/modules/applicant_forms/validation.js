@@ -121,6 +121,7 @@ const createValidation = [
   ], { maxScalarLength: MAX_LONG }),
   optionalString('signature_link', 'signature_link', { max: MAX_LONG }),
   body('signature_date').optional({ nullable: true }).isDate().withMessage('signature_date harus berupa tanggal yang valid'),
+  body('summary_all').optional({ nullable: true }).isString().withMessage('summary_all harus berupa teks'),
   body('is_delete').optional().isBoolean().withMessage('is_delete harus boolean')
 ]
 
@@ -131,6 +132,15 @@ const updateValidation = [
 
 const getByIdValidation = [
   param('id').notEmpty().withMessage('ID wajib diisi').isUUID().withMessage('Format ID tidak valid')
+]
+
+const summaryAllValidation = [
+  body('transcription_id').notEmpty().withMessage('transcription_id wajib diisi').isString().withMessage('transcription_id harus berupa teks').trim(),
+  body('summary').custom((value) => {
+    if (value === undefined) throw new Error('summary wajib dikirim')
+    if (value !== null && typeof value !== 'string') throw new Error('summary harus berupa teks')
+    return true
+  })
 ]
 
 const getListValidation = [
@@ -148,5 +158,6 @@ module.exports = {
   createValidation,
   updateValidation,
   getByIdValidation,
+  summaryAllValidation,
   getListValidation
 }
