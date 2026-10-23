@@ -15,6 +15,9 @@ const SUMMARIZE_ENABLED = process.env.SUMMARIZE_ENABLED === "true";
 const SUMMARIZE_URL =
   process.env.SUMMARIZE_URL ||
   "https://dev-api-mosa.motorsights.com/api/mosa/ai-assistant/summarize";
+// Default: SUMMARIZE_URL + "-all" (.../ai-assistant/summarize-all)
+const SUMMARIZE_ALL_URL =
+  process.env.SUMMARIZE_ALL_URL || `${SUMMARIZE_URL}-all`;
 const SUMMARIZE_INSTRUCTION =
   "Tuliskan kelebihan dan kekurangan kandidat dalam bentuk poin";
 const REQUEST_TIMEOUT_MS = 15 * 60 * 1000;
@@ -37,6 +40,68 @@ const resolveInstruction = async (contentId, idQuestion) => {
     );
   }
   return SUMMARIZE_INSTRUCTION;
+};
+
+const isFilled = (value) => typeof value === "string" && value.trim() !== "";
+
+// Lengkapi tiap content dengan instruction dari prompt_ai_summary master
+// question (id_question), fallback ke SUMMARIZE_INSTRUCTION kalau kosong
+const resolveInstructions = async (contents) => {
+  const ids = [
+    ...new Set(contents.map((item) => item.id_question).filter(Boolean)),
+  ];
+  let prompts = new Map();
+  try {
+    prompts = await masterQuestionsRepository.findPromptAiSummaryByIds(ids);
+  } catch (error) {
+    console.error(
+      `${LOG_PREFIX} [PROMPT][ERROR] id_question=${ids.join(",")}: ${error?.message || error}`,
+    );
+  }
+
+  return contents.map((item) => {
+    const prompt = prompts.get(item.id_question);
+    return {
+      ...item,
+      instruction: isFilled(prompt) ? prompt.trim() : SUMMARIZE_INSTRUCTION,
+      instruction_source: isFilled(prompt) ? "master_questions" : "default",
+    };
+  });
+};
+
+// Hit API summarize-all untuk beberapa transcription sekaligus.
+// items: [{ transcription_id, instruction }]
+const hitSummarizeAll = async (applicantFormId, items, token) => {
+  const startedAt = Date.now();
+  console.info(
+    `${LOG_PREFIX} [ALL][START] applicant_form_id=${applicantFormId} POST ${SUMMARIZE_ALL_URL} jumlah=${items.length}`,
+  );
+
+  try {
+    const response = await axios.post(SUMMARIZE_ALL_URL, items, {
+      timeout: REQUEST_TIMEOUT_MS,
+      headers: {
+        accept: "application/json",
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+    console.info(
+      `${LOG_PREFIX} [ALL][SUCCESS] applicant_form_id=${applicantFormId} http=${response.status} durasi=${Date.now() - startedAt}ms\n${formatBody(response.data)}`,
+    );
+    return { ok: true, data: response.data };
+  } catch (error) {
+    const httpStatus = error?.response?.status ?? null;
+    console.error(
+      `${LOG_PREFIX} [ALL][FAILED] applicant_form_id=${applicantFormId} http=${httpStatus ?? "-"} durasi=${Date.now() - startedAt}ms\n${formatBody(error?.response?.data ?? error?.message)}`,
+    );
+    return {
+      ok: false,
+      httpStatus,
+      data: error?.response?.data ?? null,
+      reason: error?.message ?? null,
+    };
+  }
 };
 
 const hitSummarize = async (contentId, transcriptionId, token, idQuestion) => {
@@ -84,4 +149,6 @@ const hitSummarize = async (contentId, transcriptionId, token, idQuestion) => {
 module.exports = {
   SUMMARIZE_ENABLED,
   hitSummarize,
+  resolveInstructions,
+  hitSummarizeAll,
 };

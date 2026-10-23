@@ -221,6 +221,111 @@ const applicantFormsPaths = {
       },
     },
   },
+  "/applicant-forms/create-summarize-all": {
+    post: {
+      tags: ["Applicant Forms"],
+      summary: "Summarize all content applicant form",
+      description:
+        "Payload berupa array id applicant_forms. Untuk tiap id: ambil applicant_form_contents (applicant_form_id = id) yang sudah punya transcription_id, ambil instruction dari db_hrm_master_questions.prompt_ai_summary (applicant_form_contents.id_question = db_hrm_master_questions.id); kalau kosong memakai instruction default \"Tuliskan kelebihan dan kekurangan kandidat dalam bentuk poin\". Lalu hit API summarize-all (POST {SUMMARIZE_ALL_URL}, default SUMMARIZE_URL + \"-all\") dengan payload [{ transcription_id, instruction }]. Request menunggu response API lalu mengembalikan hasil per id: success, failed (gagal hit API), atau skipped (tidak ada content dengan transcription_id). Token API memakai SPEECH_TO_TEXT_TOKEN, atau Bearer token request kalau env tidak diisi.",
+      security: [{ bearerAuth: [] }],
+      requestBody: {
+        required: true,
+        content: {
+          "application/json": {
+            schema: {
+              type: "array",
+              minItems: 1,
+              maxItems: 30,
+              items: {
+                type: "object",
+                required: ["id"],
+                properties: {
+                  id: {
+                    type: "string",
+                    format: "uuid",
+                    example: "82957122-2eef-4461-b642-4de9e8d93876",
+                    description: "applicant_forms.id",
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      responses: {
+        200: {
+          description: "Proses summarize all selesai (cek status per id)",
+          content: {
+            "application/json": {
+              schema: {
+                type: "object",
+                properties: {
+                  success: { type: "boolean", example: true },
+                  message: { type: "string", example: "Proses summarize all selesai" },
+                  data: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        id: {
+                          type: "string",
+                          format: "uuid",
+                          example: "82957122-2eef-4461-b642-4de9e8d93876",
+                          description: "applicant_forms.id",
+                        },
+                        status: {
+                          type: "string",
+                          enum: ["success", "failed", "skipped"],
+                          example: "success",
+                        },
+                        message: { type: "string", example: "Summarize all berhasil" },
+                        items: {
+                          type: "array",
+                          description: "Data yang dikirim ke API summarize-all",
+                          items: {
+                            type: "object",
+                            properties: {
+                              content_id: { type: "string", format: "uuid" },
+                              id_question: { type: "string", format: "uuid", nullable: true },
+                              transcription_id: {
+                                type: "string",
+                                example: "72058640-5531-4c30-8213-faf94cc1f943",
+                              },
+                              instruction: {
+                                type: "string",
+                                example: "Tuliskan kelebihan dan kekurangan kandidat dalam bentuk poin",
+                              },
+                              instruction_source: {
+                                type: "string",
+                                enum: ["master_questions", "default"],
+                                example: "master_questions",
+                              },
+                            },
+                          },
+                        },
+                        summarize: {
+                          nullable: true,
+                          description: "Response mentah dari API summarize-all",
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+        400: {
+          description: "Validation error",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+        },
+        401: {
+          description: "Unauthorized",
+          content: { "application/json": { schema: { $ref: "#/components/schemas/ErrorResponse" } } },
+        },
+      },
+    },
+  },
   "/applicant-forms/{id}": {
     get: {
       tags: ["Applicant Forms"],

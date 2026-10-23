@@ -89,9 +89,20 @@ const findPromptAiSummaryById = async (id) => {
   return row?.prompt_ai_summary ?? null;
 };
 
+// Map id -> prompt_ai_summary untuk banyak master question sekaligus
+const findPromptAiSummaryByIds = async (ids = []) => {
+  if (ids.length === 0) return new Map();
+  const rows = await pgCore(TABLE_NAME)
+    .select("id", "prompt_ai_summary")
+    .whereIn("id", ids)
+    .where({ deleted_at: null });
+  return new Map(rows.map((row) => [row.id, row.prompt_ai_summary]));
+};
+
 module.exports = {
   findAll,
   findById,
   findByIds,
   findPromptAiSummaryById,
+  findPromptAiSummaryByIds,
 };

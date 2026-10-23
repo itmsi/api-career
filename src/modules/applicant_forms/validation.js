@@ -143,6 +143,11 @@ const summaryAllValidation = [
   })
 ]
 
+const createSummarizeAllValidation = [
+  body().isArray({ min: 1, max: MAX_ARRAY_ITEMS }).withMessage(`Payload harus berupa array berisi 1-${MAX_ARRAY_ITEMS} item`),
+  body('*.id').notEmpty().withMessage('id wajib diisi').isUUID().withMessage('Format id tidak valid')
+]
+
 const getListValidation = [
   body('page').optional().isInt({ min: 1 }).withMessage('Page harus berupa angka positif'),
   body('limit').optional().isInt({ min: 1, max: 100 }).withMessage('Limit harus antara 1-100'),
@@ -159,5 +164,6 @@ module.exports = {
   updateValidation,
   getByIdValidation,
   summaryAllValidation,
+  createSummarizeAllValidation,
   getListValidation
 }

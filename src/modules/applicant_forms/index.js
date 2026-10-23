@@ -6,6 +6,7 @@ const {
   updateValidation,
   getByIdValidation,
   summaryAllValidation,
+  createSummarizeAllValidation,
   getListValidation
 } = require('./validation')
 const { verifyToken } = require('../../middlewares')
@@ -40,6 +41,14 @@ router.post(
   summaryAllValidation,
   validateMiddleware,
   controller.updateSummaryAll
+)
+
+router.post(
+  '/create-summarize-all',
+  verifyToken,
+  createSummarizeAllValidation,
+  validateMiddleware,
+  controller.createSummarizeAll
 )
 
 router.put(

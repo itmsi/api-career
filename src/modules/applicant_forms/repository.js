@@ -441,6 +441,17 @@ const findContentByTranscriptionId = async (transcriptionId) => {
     .first()
 }
 
+// Dipakai POST /create-summarize-all: content milik applicant form yang
+// sudah punya transcription_id
+const findTranscribedContentsByFormId = async (applicantFormId) => {
+  return await pgCore('applicant_form_contents')
+    .select('id', 'applicant_form_id', 'id_question', 'transcription_id')
+    .where({ applicant_form_id: applicantFormId, deleted_at: null })
+    .whereNotNull('transcription_id')
+    .whereNot('transcription_id', '')
+    .orderBy('created_at', 'asc')
+}
+
 const updateSummaryAll = async (id, summaryAll, updatedBy) => {
   const [updated] = await pgCore(TABLE_NAME)
     .where({ id, deleted_at: null })
@@ -489,6 +500,7 @@ module.exports = {
   linkFilesToForm,
   linkContentsToForm,
   findContentByTranscriptionId,
+  findTranscribedContentsByFormId,
   updateSummaryAll,
   updateSpeechText,
   updateNextcloudPath
