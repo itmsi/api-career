@@ -97,6 +97,16 @@ const buildPayload = async (payload = {}) => ({
   signature_date: normalizeOptionalString(payload.signature_date)
 })
 
+// Dipakai saat update: hanya field yang dikirim di payload yang diubah,
+// field yang tidak dikirim (undefined) dibiarkan sesuai data di DB
+const buildUpdatePayload = async (payload = {}) => {
+  const data = await buildPayload(payload)
+  return Object.keys(data).reduce((acc, key) => {
+    if (payload[key] !== undefined) acc[key] = data[key]
+    return acc
+  }, {})
+}
+
 const nonEmptyLinks = (values) => [
   ...new Set(values.filter((value) => typeof value === 'string' && value.trim() !== '').map((value) => value.trim()))
 ]
@@ -207,7 +217,7 @@ const updateApplicantForm = async (id, payload, user) => {
   }
 
   const updated = await repository.update(invitation.applicant_form_id, {
-    ...(await buildPayload(payload)),
+    ...(await buildUpdatePayload(payload)),
     updated_by: authorId
   })
   await linkUploadsToForm(updated)

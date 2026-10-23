@@ -304,8 +304,9 @@ const create = async (data = {}) => {
   return await findById(inserted.id)
 }
 
+// Partial update: kolom yang tidak ada di data (undefined) tidak ikut di-update
 const update = async (id, data = {}) => {
-  const payload = {
+  const columns = {
     full_name: normalizeNullableValue(data.full_name),
     nickname: normalizeNullableValue(data.nickname),
     no_mobile: normalizeNullableValue(data.no_mobile),
@@ -336,10 +337,14 @@ const update = async (id, data = {}) => {
     applicant_form_files: normalizeJsonValue(data.applicant_form_files),
     applicant_form_contents: normalizeJsonValue(data.applicant_form_contents),
     signature_link: normalizeNullableValue(data.signature_link),
-    signature_date: normalizeNullableValue(data.signature_date),
-    updated_by: data.updated_by || null,
-    updated_at: pgCore.fn.now()
+    signature_date: normalizeNullableValue(data.signature_date)
   }
+  const payload = Object.keys(columns).reduce((acc, key) => {
+    if (data[key] !== undefined) acc[key] = columns[key]
+    return acc
+  }, {})
+  payload.updated_by = data.updated_by || null
+  payload.updated_at = pgCore.fn.now()
 
   const [updated] = await pgCore(TABLE_NAME)
     .where({ id, deleted_at: null })

@@ -169,7 +169,7 @@ const applicantFormsPaths = {
       tags: ["Applicant Forms"],
       summary: "Update (atau create) applicant form dari undangan",
       description:
-        "id di path dicek ke applicant_form_invitations.id dulu; kalau tidak ketemu, fallback dicek ke applicant_form_invitations.applicant_form_id. Kalau undangan ditemukan dan applicant_form_id-nya sudah terisi, data applicant_forms yang ada di-update. Kalau applicant_form_id masih kosong (form belum pernah diisi), sebuah applicant_forms baru dibuat lalu undangan tsb ditandai completed dengan applicant_form_id yang baru. full_name/email/no_mobile yang dikirim juga dipakai untuk update applicant_form_invitations.full_name/email/no_mobile (kolom ini NOT NULL, jadi hanya field yang diisi yang di-sync).",
+        "id di path dicek ke applicant_form_invitations.id dulu; kalau tidak ketemu, fallback dicek ke applicant_form_invitations.applicant_form_id. Kalau undangan ditemukan dan applicant_form_id-nya sudah terisi, data applicant_forms yang ada di-update secara partial: hanya field yang dikirim di payload yang diubah, field yang tidak dikirim tetap sesuai data di DB (kirim null kalau memang ingin mengosongkan field). Kalau applicant_form_id masih kosong (form belum pernah diisi), sebuah applicant_forms baru dibuat lalu undangan tsb ditandai completed dengan applicant_form_id yang baru. full_name/email/no_mobile yang dikirim juga dipakai untuk update applicant_form_invitations.full_name/email/no_mobile (kolom ini NOT NULL, jadi hanya field yang diisi yang di-sync).",
       security: [{ bearerAuth: [] }],
       parameters: [
         {
