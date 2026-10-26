@@ -1,97 +1,141 @@
-const service = require('./service')
-const { successResponse, errorResponse } = require('../../utils/response')
+const service = require("./service");
+const { successResponse, errorResponse } = require("../../utils/response");
 
 const getList = async (req, res) => {
   try {
-    const data = await service.getContents(req.body)
-    return successResponse(res, data)
+    const data = await service.getContents(req.body);
+    return successResponse(res, data);
   } catch (error) {
-    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+    return errorResponse(
+      res,
+      error?.message || error,
+      error?.statusCode || 500,
+    );
   }
-}
+};
 
 const getById = async (req, res) => {
   try {
-    const { id } = req.params
-    const data = await service.getContentById(id)
-    return successResponse(res, data)
+    const { id } = req.params;
+    const data = await service.getContentById(id);
+    return successResponse(res, data);
   } catch (error) {
-    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+    return errorResponse(
+      res,
+      error?.message || error,
+      error?.statusCode || 500,
+    );
   }
-}
+};
 
 const getByAudioLink = async (req, res) => {
   try {
-    const { file_link_audio } = req.params
-    const data = await service.getContentByAudioLink(file_link_audio)
-    return successResponse(res, data)
+    const { file_link_audio } = req.params;
+    const data = await service.getContentByAudioLink(file_link_audio);
+    return successResponse(res, data);
   } catch (error) {
-    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+    return errorResponse(
+      res,
+      error?.message || error,
+      error?.statusCode || 500,
+    );
   }
-}
+};
 
 const processSpeechText = async (req, res) => {
   try {
-    const { file_link_audio } = req.params
-    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || null
-    const data = await service.processSpeechText(file_link_audio, req.user, token)
-    return successResponse(res, data)
+    const { file_link_audio } = req.params;
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, "") || null;
+    const data = await service.processSpeechText(
+      file_link_audio,
+      req.user,
+      token,
+    );
+    return successResponse(res, data);
   } catch (error) {
-    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+    return errorResponse(
+      res,
+      error?.message || error,
+      error?.statusCode || 500,
+    );
   }
-}
+};
 
 const summarize = async (req, res) => {
   try {
-    const { file_link_audio } = req.body
-    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || null
-    const data = await service.summarizeContent(file_link_audio, req.user, token)
+    const { file_link_audio } = req.body;
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, "") || null;
+    const data = await service.summarizeContent(
+      file_link_audio,
+      req.user,
+      token,
+    );
     if (data.speech_text_processed) {
-      return successResponse(res, data, 'Content belum memiliki transcription_id, proses speech to text dijalankan')
+      return successResponse(res, data, "Proses dijalankan");
     }
-    return successResponse(res, data, 'Summarize berhasil')
+    return successResponse(res, data, "Summarize berhasil");
   } catch (error) {
-    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+    return errorResponse(
+      res,
+      error?.message || error,
+      error?.statusCode || 500,
+    );
   }
-}
+};
 
 const create = async (req, res) => {
   try {
-    const data = await service.createContent(req.body, req.files, req.user)
-    return successResponse(res, data, 'File berhasil diupload', 201)
+    const data = await service.createContent(req.body, req.files, req.user);
+    return successResponse(res, data, "File berhasil diupload", 201);
   } catch (error) {
-    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+    return errorResponse(
+      res,
+      error?.message || error,
+      error?.statusCode || 500,
+    );
   }
-}
+};
 
 const update = async (req, res) => {
   try {
-    const { id } = req.params
-    const data = await service.updateContent(id, req.body, req.files, req.user)
-    return successResponse(res, data, 'File berhasil diupload')
+    const { id } = req.params;
+    const data = await service.updateContent(id, req.body, req.files, req.user);
+    return successResponse(res, data, "File berhasil diupload");
   } catch (error) {
-    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+    return errorResponse(
+      res,
+      error?.message || error,
+      error?.statusCode || 500,
+    );
   }
-}
+};
 
 const updateSpeechText = async (req, res) => {
   try {
-    const data = await service.updateSpeechText(req.body, req.user)
-    return successResponse(res, data, 'Speech to text berhasil diupdate')
+    const data = await service.updateSpeechText(req.body, req.user);
+    return successResponse(res, data, "Speech to text berhasil diupdate");
   } catch (error) {
-    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+    return errorResponse(
+      res,
+      error?.message || error,
+      error?.statusCode || 500,
+    );
   }
-}
+};
 
 const remove = async (req, res) => {
   try {
-    const { id } = req.params
-    await service.deleteContent(id, req.user)
-    return successResponse(res, null, 'File berhasil dihapus')
+    const { id } = req.params;
+    await service.deleteContent(id, req.user);
+    return successResponse(res, null, "File berhasil dihapus");
   } catch (error) {
-    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+    return errorResponse(
+      res,
+      error?.message || error,
+      error?.statusCode || 500,
+    );
   }
-}
+};
 
 module.exports = {
   getList,
@@ -102,5 +146,5 @@ module.exports = {
   create,
   update,
   updateSpeechText,
-  remove
-}
+  remove,
+};
