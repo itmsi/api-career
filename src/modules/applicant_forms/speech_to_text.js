@@ -19,7 +19,7 @@ const SPEECH_TO_TEXT_URL =
   "https://dev-api-mosa.motorsights.com/api/mosa/ai-assistant/speech-to-text";
 const REQUEST_TIMEOUT_MS = 15 * 60 * 1000;
 const MESSAGE_MAX_LENGTH = 2000;
-const PENDING_MESSAGE = "on proses AI Speech To Text";
+const PENDING_MESSAGE = "on proses Mosa AI Speech To Text";
 
 const LOG_PREFIX = "[STT]";
 const logInfo = (...args) => console.info(LOG_PREFIX, ...args);
