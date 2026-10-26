@@ -1,103 +1,111 @@
-const { pgCore } = require('../../config/database')
+const { pgCore } = require("../../config/database");
 const {
   parseStandardQuery,
-  formatSimplePaginatedResponse
-} = require('../../utils/standard_query')
+  formatSimplePaginatedResponse,
+} = require("../../utils/standard_query");
 
-const TABLE_NAME = 'applicant_forms'
-const INVITATIONS_TABLE = 'applicant_form_invitations'
-const EMPLOYEES_TABLE = 'gate_sso_employees'
+const TABLE_NAME = "applicant_forms";
+const INVITATIONS_TABLE = "applicant_form_invitations";
+const EMPLOYEES_TABLE = "gate_sso_employees";
 const SELECT_COLUMNS = [
-  'id',
-  'full_name',
-  'nickname',
-  'no_mobile',
-  'name_relationship_emergency_contact_number',
-  'email',
-  'id_number',
-  'position_applied_for',
-  'marital_status',
-  'height_weight',
-  'driver_license',
-  'address_as_per_id_card',
-  'present_address',
-  'city',
-  'place_date_of_birth',
-  'place_of_birth',
-  'date_of_birth',
-  'blood_type',
-  'tax_identification_number',
-  'working_available_date',
-  'relogion',
-  'tshirt_size',
-  'educational_background',
-  'informal_education_special_qualification',
-  'family_background',
-  'working_experiences',
-  'references_old_company',
-  'following_answers',
-  'applicant_form_files',
-  'applicant_form_contents',
-  'signature_link',
-  'signature_date',
-  'summary_all',
-  'summary_all_status',
-  'summary_all_message',
-  'created_at',
-  'created_by',
-  'updated_at',
-  'updated_by',
-  'deleted_at',
-  'deleted_by',
-  'is_delete'
-]
-const ALLOWED_SORT_COLUMNS = ['created_at']
+  "id",
+  "full_name",
+  "nickname",
+  "no_mobile",
+  "name_relationship_emergency_contact_number",
+  "email",
+  "id_number",
+  "position_applied_for",
+  "marital_status",
+  "height_weight",
+  "driver_license",
+  "address_as_per_id_card",
+  "present_address",
+  "city",
+  "place_date_of_birth",
+  "place_of_birth",
+  "date_of_birth",
+  "blood_type",
+  "tax_identification_number",
+  "working_available_date",
+  "relogion",
+  "tshirt_size",
+  "educational_background",
+  "informal_education_special_qualification",
+  "family_background",
+  "working_experiences",
+  "references_old_company",
+  "following_answers",
+  "applicant_form_files",
+  // 'applicant_form_contents',
+  "signature_link",
+  "signature_date",
+  "summary_all",
+  "summary_all_status",
+  "summary_all_message",
+  "created_at",
+  "created_by",
+  "updated_at",
+  "updated_by",
+  "deleted_at",
+  "deleted_by",
+  "is_delete",
+];
+const ALLOWED_SORT_COLUMNS = ["created_at"];
 // Kolom pencarian di-qualify dengan alias tabel karena hasil query berasal dari join
 // applicant_form_invitations (afi) LEFT JOIN applicant_forms (af)
 const SEARCHABLE_COLUMNS = [
-  'afi.full_name',
-  'af.nickname',
-  'afi.email',
-  'afi.no_mobile',
-  'af.id_number'
-]
-const ALLOWED_FILTER_COLUMNS = ['position_applied_for', 'city', 'marital_status', 'is_completed']
+  "afi.full_name",
+  "af.nickname",
+  "afi.email",
+  "afi.no_mobile",
+  "af.id_number",
+];
+const ALLOWED_FILTER_COLUMNS = [
+  "position_applied_for",
+  "city",
+  "marital_status",
+  "is_completed",
+];
 // Filter hanya relevan untuk data yang sudah mengisi applicant_forms, jadi di-qualify ke af.*
 // is_completed adalah kolom milik applicant_form_invitations (afi)
 const FILTER_COLUMN_MAP = {
-  position_applied_for: 'af.position_applied_for',
-  city: 'af.city',
-  marital_status: 'af.marital_status',
-  is_completed: 'afi.is_completed'
-}
-const BOOLEAN_FILTER_COLUMNS = ['is_completed']
+  position_applied_for: "af.position_applied_for",
+  city: "af.city",
+  marital_status: "af.marital_status",
+  is_completed: "afi.is_completed",
+};
+const BOOLEAN_FILTER_COLUMNS = ["is_completed"];
 
 const normalizeBooleanValue = (value) => {
-  if (typeof value === 'boolean') return value
-  if (typeof value === 'string') return ['true', '1'].includes(value.trim().toLowerCase())
-  return Boolean(value)
-}
+  if (typeof value === "boolean") return value;
+  if (typeof value === "string")
+    return ["true", "1"].includes(value.trim().toLowerCase());
+  return Boolean(value);
+};
 
 const normalizeFilterValue = (value) => {
-  if (value === undefined || value === null) return undefined
-  if (typeof value !== 'string') return value
-  const normalized = value.trim().toLowerCase()
-  if (normalized === '' || normalized === 'null' || normalized === 'nan') return undefined
-  return value
-}
+  if (value === undefined || value === null) return undefined;
+  if (typeof value !== "string") return value;
+  const normalized = value.trim().toLowerCase();
+  if (normalized === "" || normalized === "null" || normalized === "nan")
+    return undefined;
+  return value;
+};
 
 const normalizeNullableValue = (value) => {
-  if (value === undefined || value === null) return null
-  if (typeof value !== 'string') return value
-  const normalized = value.trim()
-  if (normalized === '' || normalized === 'null' || normalized === 'nan') return null
-  return normalized
-}
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string") return value;
+  const normalized = value.trim();
+  if (normalized === "" || normalized === "null" || normalized === "nan")
+    return null;
+  return normalized;
+};
 
 const normalizeJsonValue = (value) => {
-  if (value === undefined || value === null) return null
-  return JSON.stringify(value)
-}
+  if (value === undefined || value === null) return null;
+  return JSON.stringify(value);
+};
 
 // Base query: applicant_form_invitations di-LEFT JOIN ke applicant_forms via applicant_form_id
 // (supaya undangan yang belum diisi applicant form-nya tetap muncul di listing), dan
@@ -105,170 +113,184 @@ const normalizeJsonValue = (value) => {
 const buildJoinedQuery = () => {
   return pgCore(`${INVITATIONS_TABLE} as afi`)
     .leftJoin(`${TABLE_NAME} as af`, function () {
-      this.on('af.id', '=', 'afi.applicant_form_id').andOnNull('af.deleted_at')
+      this.on("af.id", "=", "afi.applicant_form_id").andOnNull("af.deleted_at");
     })
     .leftJoin(`${EMPLOYEES_TABLE} as gse`, function () {
-      this.on(pgCore.raw('gse.employee_id::text = afi.created_by'))
+      this.on(pgCore.raw("gse.employee_id::text = afi.created_by"));
     })
-    .where('afi.deleted_at', null)
-}
+    .where("afi.deleted_at", null);
+};
 
 // id yang ditampilkan ke klien: pakai applicant_form_id kalau form sudah diisi,
 // kalau belum (applicant_form_id masih kosong) fallback ke id undangan itu sendiri.
-const ID_COLUMN = pgCore.raw('coalesce(afi.applicant_form_id, afi.id) as id')
+const ID_COLUMN = pgCore.raw("coalesce(afi.applicant_form_id, afi.id) as id");
 
 // Field dasar dari applicant_form_invitations + nama pembuat undangan, dipakai
 // baik di listing maupun di detail.
 const INVITATION_SELECT_COLUMNS = [
   ID_COLUMN,
-  'afi.id as applicant_form_invitation_id',
-  'afi.full_name as name',
-  'afi.email as email',
-  'afi.no_mobile as no_mobile',
-  'afi.token as token',
-  'afi.token_expires_at as token_expires_at',
-  'afi.is_completed as is_completed',
-  'afi.completed_at as completed_at',
-  'afi.status_send_email as status_send_email',
-  'afi.created_at as created_at',
-  'gse.employee_name as created_by_name'
-]
+  "afi.id as applicant_form_invitation_id",
+  "afi.full_name as name",
+  "afi.email as email",
+  "afi.no_mobile as no_mobile",
+  "afi.token as token",
+  "afi.token_expires_at as token_expires_at",
+  "afi.is_completed as is_completed",
+  "afi.completed_at as completed_at",
+  "afi.status_send_email as status_send_email",
+  "afi.created_at as created_at",
+  "gse.employee_name as created_by_name",
+];
 
 // Kolom applicant_forms yang ditampilkan apa adanya, di luar kolom yang sudah
 // direpresentasikan lewat id/name/email/no_mobile (invitation) dan created_by_name (employee)
-const REST_FORM_COLUMNS = SELECT_COLUMNS.filter((column) => ![
-  'id',
-  'full_name',
-  'email',
-  'no_mobile',
-  'created_at',
-  'created_by',
-  'updated_at',
-  'updated_by',
-  'deleted_at',
-  'deleted_by'
-].includes(column))
+const REST_FORM_COLUMNS = SELECT_COLUMNS.filter(
+  (column) =>
+    ![
+      "id",
+      "full_name",
+      "email",
+      "no_mobile",
+      "created_at",
+      "created_by",
+      "updated_at",
+      "updated_by",
+      "deleted_at",
+      "deleted_by",
+    ].includes(column),
+);
 
 // Listing: hanya sebagian kolom applicant_forms yang relevan buat tabel/list
-const LIST_FORM_COLUMNS = ['position_applied_for', 'city', 'working_available_date']
+const LIST_FORM_COLUMNS = [
+  "position_applied_for",
+  "city",
+  "working_available_date",
+];
 
 const JOINED_SELECT_COLUMNS = [
   ...INVITATION_SELECT_COLUMNS,
-  ...LIST_FORM_COLUMNS.map((column) => `af.${column} as ${column}`)
-]
+  ...LIST_FORM_COLUMNS.map((column) => `af.${column} as ${column}`),
+];
 
 // Detail (GET /:id): semua kolom applicant_forms kecuali yang sudah direpresentasikan
 // di atas dan kolom audit (deleted_at, updated_at, created_by, updated_by, deleted_by, created_at)
 const DETAIL_SELECT_COLUMNS = [
   ...INVITATION_SELECT_COLUMNS,
-  ...REST_FORM_COLUMNS.map((column) => `af.${column} as ${column}`)
-]
+  ...REST_FORM_COLUMNS.map((column) => `af.${column} as ${column}`),
+];
 
 const findAll = async (params = {}) => {
   const queryParams = parseStandardQuery(
     { body: params },
     {
       allowedColumns: ALLOWED_SORT_COLUMNS,
-      defaultOrder: ['created_at', 'desc'],
+      defaultOrder: ["created_at", "desc"],
       searchableColumns: SEARCHABLE_COLUMNS,
       allowedFilters: ALLOWED_FILTER_COLUMNS,
-      fromBody: true
-    }
-  )
+      fromBody: true,
+    },
+  );
 
   Object.keys(queryParams.filters).forEach((key) => {
-    queryParams.filters[key] = normalizeFilterValue(queryParams.filters[key])
-  })
+    queryParams.filters[key] = normalizeFilterValue(queryParams.filters[key]);
+  });
 
   const applyJoinedFilters = (query) => {
     if (queryParams.search.searchTerm && SEARCHABLE_COLUMNS.length > 0) {
       query = query.where(function () {
         SEARCHABLE_COLUMNS.forEach((column, index) => {
           if (index === 0) {
-            this.where(column, 'ilike', `%${queryParams.search.searchTerm}%`)
+            this.where(column, "ilike", `%${queryParams.search.searchTerm}%`);
           } else {
-            this.orWhere(column, 'ilike', `%${queryParams.search.searchTerm}%`)
+            this.orWhere(column, "ilike", `%${queryParams.search.searchTerm}%`);
           }
-        })
-      })
+        });
+      });
     }
 
     Object.keys(queryParams.filters).forEach((filterKey) => {
-      let filterValue = queryParams.filters[filterKey]
-      if (filterValue !== undefined && filterValue !== '') {
+      let filterValue = queryParams.filters[filterKey];
+      if (filterValue !== undefined && filterValue !== "") {
         if (BOOLEAN_FILTER_COLUMNS.includes(filterKey)) {
-          filterValue = normalizeBooleanValue(filterValue)
+          filterValue = normalizeBooleanValue(filterValue);
         }
-        query = query.where(FILTER_COLUMN_MAP[filterKey] || filterKey, filterValue)
+        query = query.where(
+          FILTER_COLUMN_MAP[filterKey] || filterKey,
+          filterValue,
+        );
       }
-    })
+    });
 
-    return query
-  }
+    return query;
+  };
 
-  const dataQuery = applyJoinedFilters(buildJoinedQuery().select(JOINED_SELECT_COLUMNS))
+  const dataQuery = applyJoinedFilters(
+    buildJoinedQuery().select(JOINED_SELECT_COLUMNS),
+  )
     // sort_by yang diizinkan saat ini hanya created_at -> pakai waktu undangan dibuat
     // sebagai acuan urutan karena tabel utama listing adalah applicant_form_invitations
-    .orderBy('afi.created_at', queryParams.sorting.sortOrder)
+    .orderBy("afi.created_at", queryParams.sorting.sortOrder)
     .limit(queryParams.pagination.limit)
-    .offset(queryParams.pagination.offset)
+    .offset(queryParams.pagination.offset);
 
-  const data = await dataQuery
+  const data = await dataQuery;
 
   const totalResult = await applyJoinedFilters(buildJoinedQuery())
-    .count('afi.id as count')
-    .first()
+    .count("afi.id as count")
+    .first();
 
-  const total = parseInt(totalResult?.count || 0, 10)
+  const total = parseInt(totalResult?.count || 0, 10);
 
-  return formatSimplePaginatedResponse(data, queryParams.pagination, total)
-}
+  return formatSimplePaginatedResponse(data, queryParams.pagination, total);
+};
 
 const findById = async (id) => {
   return await pgCore(TABLE_NAME)
     .select(SELECT_COLUMNS)
     .where({ id, deleted_at: null })
-    .first()
-}
+    .first();
+};
 
 // Dipakai oleh GET /applicant-forms/:id. Dicek dulu ke applicant_form_invitations.applicant_form_id,
 // kalau tidak ketemu baru fallback ke applicant_form_invitations.id (id undangan).
 const findDetailById = async (id) => {
   const byApplicantFormId = await buildJoinedQuery()
     .select(DETAIL_SELECT_COLUMNS)
-    .andWhere('afi.applicant_form_id', id)
-    .first()
+    .andWhere("afi.applicant_form_id", id)
+    .first();
 
-  if (byApplicantFormId) return byApplicantFormId
+  if (byApplicantFormId) return byApplicantFormId;
 
   return await buildJoinedQuery()
     .select(DETAIL_SELECT_COLUMNS)
-    .andWhere('afi.id', id)
-    .first()
-}
+    .andWhere("afi.id", id)
+    .first();
+};
 
 // Dipakai oleh PUT /applicant-forms/:id untuk menentukan :id itu id undangan atau
 // id applicant_form: cek dulu applicant_form_invitations.id, baru fallback ke applicant_form_id.
 const findInvitationById = async (id) => {
   return await pgCore(INVITATIONS_TABLE)
-    .select(['id', 'applicant_form_id'])
+    .select(["id", "applicant_form_id"])
     .where({ id, deleted_at: null })
-    .first()
-}
+    .first();
+};
 
 const findInvitationByApplicantFormId = async (applicantFormId) => {
   return await pgCore(INVITATIONS_TABLE)
-    .select(['id', 'applicant_form_id'])
+    .select(["id", "applicant_form_id"])
     .where({ applicant_form_id: applicantFormId, deleted_at: null })
-    .first()
-}
+    .first();
+};
 
 const create = async (data = {}) => {
   const payload = {
     full_name: normalizeNullableValue(data.full_name),
     nickname: normalizeNullableValue(data.nickname),
     no_mobile: normalizeNullableValue(data.no_mobile),
-    name_relationship_emergency_contact_number: normalizeNullableValue(data.name_relationship_emergency_contact_number),
+    name_relationship_emergency_contact_number: normalizeNullableValue(
+      data.name_relationship_emergency_contact_number,
+    ),
     email: normalizeNullableValue(data.email),
     id_number: normalizeNullableValue(data.id_number),
     position_applied_for: normalizeNullableValue(data.position_applied_for),
@@ -282,12 +304,16 @@ const create = async (data = {}) => {
     place_of_birth: normalizeNullableValue(data.place_of_birth),
     date_of_birth: normalizeNullableValue(data.date_of_birth),
     blood_type: normalizeNullableValue(data.blood_type),
-    tax_identification_number: normalizeNullableValue(data.tax_identification_number),
+    tax_identification_number: normalizeNullableValue(
+      data.tax_identification_number,
+    ),
     working_available_date: normalizeNullableValue(data.working_available_date),
     relogion: normalizeNullableValue(data.relogion),
     tshirt_size: normalizeNullableValue(data.tshirt_size),
     educational_background: normalizeJsonValue(data.educational_background),
-    informal_education_special_qualification: normalizeJsonValue(data.informal_education_special_qualification),
+    informal_education_special_qualification: normalizeJsonValue(
+      data.informal_education_special_qualification,
+    ),
     family_background: normalizeJsonValue(data.family_background),
     working_experiences: normalizeJsonValue(data.working_experiences),
     references_old_company: normalizeJsonValue(data.references_old_company),
@@ -301,12 +327,12 @@ const create = async (data = {}) => {
     updated_by: data.updated_by || null,
     created_at: pgCore.fn.now(),
     updated_at: pgCore.fn.now(),
-    is_delete: false
-  }
+    is_delete: false,
+  };
 
-  const [inserted] = await pgCore(TABLE_NAME).insert(payload).returning('id')
-  return await findById(inserted.id)
-}
+  const [inserted] = await pgCore(TABLE_NAME).insert(payload).returning("id");
+  return await findById(inserted.id);
+};
 
 // Partial update: kolom yang tidak ada di data (undefined) tidak ikut di-update
 const update = async (id, data = {}) => {
@@ -314,7 +340,9 @@ const update = async (id, data = {}) => {
     full_name: normalizeNullableValue(data.full_name),
     nickname: normalizeNullableValue(data.nickname),
     no_mobile: normalizeNullableValue(data.no_mobile),
-    name_relationship_emergency_contact_number: normalizeNullableValue(data.name_relationship_emergency_contact_number),
+    name_relationship_emergency_contact_number: normalizeNullableValue(
+      data.name_relationship_emergency_contact_number,
+    ),
     email: normalizeNullableValue(data.email),
     id_number: normalizeNullableValue(data.id_number),
     position_applied_for: normalizeNullableValue(data.position_applied_for),
@@ -328,12 +356,16 @@ const update = async (id, data = {}) => {
     place_of_birth: normalizeNullableValue(data.place_of_birth),
     date_of_birth: normalizeNullableValue(data.date_of_birth),
     blood_type: normalizeNullableValue(data.blood_type),
-    tax_identification_number: normalizeNullableValue(data.tax_identification_number),
+    tax_identification_number: normalizeNullableValue(
+      data.tax_identification_number,
+    ),
     working_available_date: normalizeNullableValue(data.working_available_date),
     relogion: normalizeNullableValue(data.relogion),
     tshirt_size: normalizeNullableValue(data.tshirt_size),
     educational_background: normalizeJsonValue(data.educational_background),
-    informal_education_special_qualification: normalizeJsonValue(data.informal_education_special_qualification),
+    informal_education_special_qualification: normalizeJsonValue(
+      data.informal_education_special_qualification,
+    ),
     family_background: normalizeJsonValue(data.family_background),
     working_experiences: normalizeJsonValue(data.working_experiences),
     references_old_company: normalizeJsonValue(data.references_old_company),
@@ -342,23 +374,23 @@ const update = async (id, data = {}) => {
     applicant_form_contents: normalizeJsonValue(data.applicant_form_contents),
     signature_link: normalizeNullableValue(data.signature_link),
     signature_date: normalizeNullableValue(data.signature_date),
-    summary_all: normalizeNullableValue(data.summary_all)
-  }
+    summary_all: normalizeNullableValue(data.summary_all),
+  };
   const payload = Object.keys(columns).reduce((acc, key) => {
-    if (data[key] !== undefined) acc[key] = columns[key]
-    return acc
-  }, {})
-  payload.updated_by = data.updated_by || null
-  payload.updated_at = pgCore.fn.now()
+    if (data[key] !== undefined) acc[key] = columns[key];
+    return acc;
+  }, {});
+  payload.updated_by = data.updated_by || null;
+  payload.updated_at = pgCore.fn.now();
 
   const [updated] = await pgCore(TABLE_NAME)
     .where({ id, deleted_at: null })
     .update(payload)
-    .returning('id')
+    .returning("id");
 
-  if (!updated?.id) return null
-  return await findById(updated.id)
-}
+  if (!updated?.id) return null;
+  return await findById(updated.id);
+};
 
 const remove = async (id, deletedBy) => {
   const [updated] = await pgCore(TABLE_NAME)
@@ -367,92 +399,102 @@ const remove = async (id, deletedBy) => {
       deleted_at: pgCore.fn.now(),
       deleted_by: deletedBy,
       updated_at: pgCore.fn.now(),
-      is_delete: true
+      is_delete: true,
     })
-    .returning('id')
+    .returning("id");
 
-  if (!updated?.id) return null
+  if (!updated?.id) return null;
 
   return await pgCore(TABLE_NAME)
     .select(SELECT_COLUMNS)
     .where({ id: updated.id })
-    .first()
-}
+    .first();
+};
 
 // Lookup file hasil upload (signature/files/contents) berdasarkan share link-nya,
 // dipakai consumer queue untuk memindahkan file ke folder kandidat di Nextcloud.
 const findSignatureByLink = async (link) => {
-  return await pgCore('applicant_form_signatures')
-    .select('id', 'nextcloud_path')
+  return await pgCore("applicant_form_signatures")
+    .select("id", "nextcloud_path")
     .where({ signature_link: link, deleted_at: null })
-    .first()
-}
+    .first();
+};
 
 const findFileByLink = async (link) => {
-  return await pgCore('applicant_form_files')
-    .select('id', 'nextcloud_path')
+  return await pgCore("applicant_form_files")
+    .select("id", "nextcloud_path")
     .where({ file_link: link, deleted_at: null })
-    .first()
-}
+    .first();
+};
 
 const findContentByLink = async (kind, link) => {
-  return await pgCore('applicant_form_contents')
-    .select('id', `nextcloud_path_${kind} as nextcloud_path`)
+  return await pgCore("applicant_form_contents")
+    .select("id", `nextcloud_path_${kind} as nextcloud_path`)
     .where({ [`file_link_${kind}`]: link, deleted_at: null })
-    .first()
-}
+    .first();
+};
 
 // Tandai record upload (signature/files/contents) milik applicant form tertentu.
 // Hanya record yang link-nya ada di tabel tsb yang ter-update; link yang tidak
 // ditemukan otomatis diabaikan.
 const linkSignaturesToForm = async (links, applicantFormId) => {
-  if (!links.length) return 0
-  return await pgCore('applicant_form_signatures')
-    .whereIn('signature_link', links)
+  if (!links.length) return 0;
+  return await pgCore("applicant_form_signatures")
+    .whereIn("signature_link", links)
     .where({ deleted_at: null })
-    .update({ applicant_form_id: applicantFormId, updated_at: pgCore.fn.now() })
-}
+    .update({
+      applicant_form_id: applicantFormId,
+      updated_at: pgCore.fn.now(),
+    });
+};
 
 const linkFilesToForm = async (links, applicantFormId) => {
-  if (!links.length) return 0
-  return await pgCore('applicant_form_files')
-    .whereIn('file_link', links)
+  if (!links.length) return 0;
+  return await pgCore("applicant_form_files")
+    .whereIn("file_link", links)
     .where({ deleted_at: null })
-    .update({ applicant_form_id: applicantFormId, updated_at: pgCore.fn.now() })
-}
+    .update({
+      applicant_form_id: applicantFormId,
+      updated_at: pgCore.fn.now(),
+    });
+};
 
 // contents: [{ file_video, step }]. step berbeda per content, jadi diupdate per link
 const linkContentsToForm = async (contents, applicantFormId) => {
-  let total = 0
+  let total = 0;
   for (const { file_video: videoLink, step } of contents) {
-    total += await pgCore('applicant_form_contents')
+    total += await pgCore("applicant_form_contents")
       .where({ file_link_video: videoLink, deleted_at: null })
-      .update({ applicant_form_id: applicantFormId, step: step ?? null, updated_at: pgCore.fn.now() })
+      .update({
+        applicant_form_id: applicantFormId,
+        step: step ?? null,
+        updated_at: pgCore.fn.now(),
+      });
   }
-  return total
-}
+  return total;
+};
 
 // Dipakai POST /summary-all: cari content berdasarkan transcription_id,
 // prioritas yang sudah punya applicant_form_id lalu yang terbaru
 const findContentByTranscriptionId = async (transcriptionId) => {
-  return await pgCore('applicant_form_contents')
-    .select('id', 'applicant_form_id', 'transcription_id')
+  return await pgCore("applicant_form_contents")
+    .select("id", "applicant_form_id", "transcription_id")
     .where({ transcription_id: transcriptionId, deleted_at: null })
-    .orderByRaw('applicant_form_id is null')
-    .orderBy('created_at', 'desc')
-    .first()
-}
+    .orderByRaw("applicant_form_id is null")
+    .orderBy("created_at", "desc")
+    .first();
+};
 
 // Dipakai POST /create-summarize-all: content milik applicant form yang
 // sudah punya transcription_id
 const findTranscribedContentsByFormId = async (applicantFormId) => {
-  return await pgCore('applicant_form_contents')
-    .select('id', 'applicant_form_id', 'id_question', 'transcription_id')
+  return await pgCore("applicant_form_contents")
+    .select("id", "applicant_form_id", "id_question", "transcription_id")
     .where({ applicant_form_id: applicantFormId, deleted_at: null })
-    .whereNotNull('transcription_id')
-    .whereNot('transcription_id', '')
-    .orderBy('created_at', 'asc')
-}
+    .whereNotNull("transcription_id")
+    .whereNot("transcription_id", "")
+    .orderBy("created_at", "asc");
+};
 
 // data: summary_all / summary_all_status / summary_all_message (partial)
 const updateSummaryAll = async (id, data = {}, updatedBy) => {
@@ -461,31 +503,37 @@ const updateSummaryAll = async (id, data = {}, updatedBy) => {
     .update({
       ...data,
       updated_by: updatedBy || null,
-      updated_at: pgCore.fn.now()
+      updated_at: pgCore.fn.now(),
     })
-    .returning(['id', 'summary_all', 'summary_all_status', 'summary_all_message', 'updated_at'])
+    .returning([
+      "id",
+      "summary_all",
+      "summary_all_status",
+      "summary_all_message",
+      "updated_at",
+    ]);
 
-  return updated || null
-}
+  return updated || null;
+};
 
 // Dipakai proses antrian speech to text (lihat ./speech_to_text.js)
 const updateSpeechText = async (contentId, data = {}) => {
-  return await pgCore('applicant_form_contents')
+  return await pgCore("applicant_form_contents")
     .where({ id: contentId })
     .update({
       ...data,
-      updated_at: pgCore.fn.now()
-    })
-}
+      updated_at: pgCore.fn.now(),
+    });
+};
 
 const updateNextcloudPath = async (tableName, id, column, nextcloudPath) => {
   return await pgCore(tableName)
     .where({ id })
     .update({
       [column]: nextcloudPath,
-      updated_at: pgCore.fn.now()
-    })
-}
+      updated_at: pgCore.fn.now(),
+    });
+};
 
 module.exports = {
   findAll,
@@ -506,5 +554,5 @@ module.exports = {
   findTranscribedContentsByFormId,
   updateSummaryAll,
   updateSpeechText,
-  updateNextcloudPath
-}
+  updateNextcloudPath,
+};
