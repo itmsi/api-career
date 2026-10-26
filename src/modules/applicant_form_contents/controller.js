@@ -45,7 +45,10 @@ const summarize = async (req, res) => {
   try {
     const { file_link_audio } = req.body
     const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || null
-    const data = await service.summarizeContent(file_link_audio, token)
+    const data = await service.summarizeContent(file_link_audio, req.user, token)
+    if (data.speech_text_processed) {
+      return successResponse(res, data, 'Content belum memiliki transcription_id, proses speech to text dijalankan')
+    }
     return successResponse(res, data, 'Summarize berhasil')
   } catch (error) {
     return errorResponse(res, error?.message || error, error?.statusCode || 500)

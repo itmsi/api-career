@@ -258,7 +258,7 @@ const applicantFormContentsPaths = {
     post: {
       tags: ['Applicant Form Contents'],
       summary: 'Summarize hasil speech to text berdasarkan file_link_audio',
-      description: 'Cari content berdasarkan file_link_audio (link lengkap atau token share-nya saja), lalu hit API summarize (POST {SUMMARIZE_URL}) dengan transcription_id content tsb. Instruction diambil dari db_hrm_master_questions.prompt_ai_summary berdasarkan id_question content; kalau id_question / prompt_ai_summary kosong memakai instruction default ("Tuliskan kelebihan dan kekurangan kandidat dalam bentuk poin"). Request menunggu response API summarize lalu mengembalikannya. Token API memakai SPEECH_TO_TEXT_TOKEN, atau Bearer token request kalau env tidak diisi.',
+      description: 'Cari content berdasarkan file_link_audio (link lengkap atau token share-nya saja), lalu hit API summarize (POST {SUMMARIZE_URL}) dengan transcription_id content tsb. Instruction diambil dari db_hrm_master_questions.prompt_ai_summary berdasarkan id_question content; kalau id_question / prompt_ai_summary kosong memakai instruction default ("Tuliskan kelebihan dan kekurangan kandidat dalam bentuk poin"). Request menunggu response API summarize lalu mengembalikannya. Kalau content belum memiliki transcription_id, endpoint menjalankan proses speech to text (sama seperti POST /applicant_form_contents/audio/{file_link_audio}) dan mengembalikan data audio dengan speech_text_processed = true. Token API memakai SPEECH_TO_TEXT_TOKEN, atau Bearer token request kalau env tidak diisi.',
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,
@@ -287,7 +287,6 @@ const applicantFormContentsPaths = {
         400: errorResponse('Validation error'),
         401: errorResponse('Unauthorized'),
         404: errorResponse('Content dengan file_link_audio tsb tidak ditemukan'),
-        422: errorResponse('Content belum memiliki transcription_id'),
         502: errorResponse('Gagal hit API summarize')
       }
     }

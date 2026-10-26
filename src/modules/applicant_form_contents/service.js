@@ -172,7 +172,9 @@ const processSpeechText = async (fileLinkAudio, user, token) => {
 // Hit API summarize manual untuk satu audio. Instruction memakai
 // prompt_ai_summary master question (id_question content), fallback ke
 // instruction default. Hasil summarize dikembalikan langsung di response.
-const summarizeContent = async (fileLinkAudio, token) => {
+// Kalau content belum punya transcription_id, proses speech to text dulu
+// (sama seperti POST /audio/:file_link_audio) dan kembalikan data audio-nya.
+const summarizeContent = async (fileLinkAudio, user, token) => {
   const existing = await repository.findByAudioLink(
     normalizeOptionalString(fileLinkAudio),
   );
@@ -180,9 +182,9 @@ const summarizeContent = async (fileLinkAudio, token) => {
     throw { message: "Data content tidak ditemukan", statusCode: 404 };
   }
   if (!existing.transcription_id) {
-    throw {
-      message: "Content belum memiliki transcription_id",
-      statusCode: 422,
+    return {
+      speech_text_processed: true,
+      ...(await processSpeechText(existing.file_link_audio, user, token)),
     };
   }
 
