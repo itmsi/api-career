@@ -43,4 +43,8 @@ CREATE FOREIGN TABLE IF NOT EXISTS db_hrm_master_questions (
     )
     SERVER db_hrm_server
     OPTIONS (schema_name 'public', table_name 'master_questions');
+
+   DROP FOREIGN TABLE IF EXISTS db_hrm_master_questions;
+    DROP USER MAPPING IF EXISTS FOR CURRENT_USER SERVER db_hrm_server;
+    DROP SERVER IF EXISTS db_hrm_server CASCADE;
  */
