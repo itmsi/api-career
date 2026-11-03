@@ -30,6 +30,17 @@ const SELECT_COLUMNS = [
   "summary_update",
   "status_summary",
   "message_summary",
+  "summary_score",
+  "summary_rating",
+  "summary_answer_relevance",
+  "summary_for_hr",
+  "summary_assessment_focus",
+  "summary_star",
+  "summary_dimensions",
+  "summary_strengths",
+  "summary_development_areas",
+  "summary_red_flags",
+  "summary_follow_up_questions",
   "step",
   "questions",
   "created_at",
@@ -196,6 +207,30 @@ const updateSpeechTextByAudioLink = async (fileLinkAudio, data = {}) => {
   return updated;
 };
 
+// Skor kandidat = rata-rata summary_score semua content aktif miliknya.
+// Kosong (null) kalau belum ada content yang punya skor
+const refreshApplicantFormScore = async (applicantFormId, ratingFromScore) => {
+  if (!applicantFormId) return null;
+  const row = await pgCore(TABLE_NAME)
+    .where({ applicant_form_id: applicantFormId, deleted_at: null })
+    .whereNotNull("summary_score")
+    .avg({ average: "summary_score" })
+    .first();
+
+  const average =
+    row?.average === null || row?.average === undefined
+      ? null
+      : Math.round(Number(row.average) * 100) / 100;
+
+  await pgCore("applicant_forms")
+    .where({ id: applicantFormId })
+    .update({
+      summary_score: average,
+      summary_rating: ratingFromScore(average),
+    });
+  return average;
+};
+
 // Dipakai POST /audio/:file_link_audio: update status speech to text satu content
 const updateSpeechTextById = async (id, data = {}) => {
   const [updated] = await pgCore(TABLE_NAME)
@@ -230,6 +265,7 @@ module.exports = {
   create,
   update,
   updateSpeechTextByAudioLink,
+  refreshApplicantFormScore,
   updateSpeechTextById,
   remove,
 };

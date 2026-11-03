@@ -74,7 +74,18 @@ const applicantFormContentsSchema = {
       summary: { type: 'string', nullable: true, description: 'Ringkasan hasil speech to text', example: 'Pelamar memperkenalkan diri ...' },
       summary_update: { type: 'string', nullable: true, description: 'Ringkasan hasil speech to text yang sudah diperbarui', example: 'Pelamar memperkenalkan diri ...' },
       status_summary: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], description: 'Status proses summarize', example: 'Success' },
-      message_summary: { type: 'string', nullable: true, description: 'Pesan proses summarize (maksimal 2000 karakter)', example: 'Summarize berhasil' }
+      message_summary: { type: 'string', nullable: true, description: 'Pesan proses summarize (maksimal 2000 karakter)', example: 'Summarize berhasil' },
+      summary_score: { type: 'number', nullable: true, minimum: 0, maximum: 5, description: 'Skor penilaian AI (weighted_score) audio ini. Diisi otomatis dari JSON di summary_update; null kalau summary_update bukan JSON penilaian', example: 3.85 },
+      summary_rating: { type: 'string', nullable: true, enum: ['Strong', 'Good', 'Consider', 'Concern'], description: 'Rating penilaian AI audio ini. Diisi otomatis dari JSON di summary_update', example: 'Good' },
+      summary_answer_relevance: { type: 'string', nullable: true, enum: ['relevant', 'partially_relevant', 'off_topic'], description: 'Relevansi jawaban terhadap pertanyaan (dari JSON penilaian)', example: 'relevant' },
+      summary_for_hr: { type: 'string', nullable: true, description: 'Ringkasan 3-4 kalimat untuk HR (dari JSON penilaian)', example: 'Kandidat menjelaskan latar belakang dengan jelas ...' },
+      summary_assessment_focus: { type: 'array', nullable: true, items: { type: 'string' }, description: 'Fokus penilaian audio ini', example: ['Communication', 'Background', 'Confidence'] },
+      summary_star: { type: 'object', nullable: true, additionalProperties: { type: 'boolean' }, description: 'Kelengkapan pola STAR', example: { situation: true, task: true, action: true, result: false } },
+      summary_dimensions: { type: 'array', nullable: true, description: 'Skor, bukti, dan alasan per dimensi', items: { $ref: '#/components/schemas/ApplicantFormContentSummaryDimension' } },
+      summary_strengths: { type: 'array', nullable: true, items: { type: 'string' }, description: 'Kekuatan kandidat (maks 3)' },
+      summary_development_areas: { type: 'array', nullable: true, items: { type: 'string' }, description: 'Area pengembangan (maks 3)' },
+      summary_red_flags: { type: 'array', nullable: true, items: { type: 'string' }, description: 'Red flag; [] berarti tidak ada' },
+      summary_follow_up_questions: { type: 'array', nullable: true, items: { type: 'string' }, description: 'Pertanyaan lanjutan untuk interview tatap muka' }
     }
   },
   ApplicantFormContentSpeechTextResult: {
@@ -91,7 +102,28 @@ const applicantFormContentsSchema = {
       summary_update: { type: 'string', nullable: true, example: 'Pelamar memperkenalkan diri ...' },
       status_summary: { type: 'string', nullable: true, example: 'Success' },
       message_summary: { type: 'string', nullable: true, example: 'Summarize berhasil' },
+      summary_score: { type: 'number', nullable: true, example: 3.85 },
+      summary_rating: { type: 'string', nullable: true, example: 'Good' },
+      summary_answer_relevance: { type: 'string', nullable: true, example: 'relevant' },
+      summary_for_hr: { type: 'string', nullable: true, example: 'Kandidat menjelaskan latar belakang dengan jelas ...' },
+      summary_assessment_focus: { type: 'array', nullable: true, items: { type: 'string' }, example: ['Communication', 'Background', 'Confidence'] },
+      summary_star: { type: 'object', nullable: true, additionalProperties: { type: 'boolean' }, example: { situation: true, task: true, action: true, result: false } },
+      summary_dimensions: { type: 'array', nullable: true, items: { $ref: '#/components/schemas/ApplicantFormContentSummaryDimension' } },
+      summary_strengths: { type: 'array', nullable: true, items: { type: 'string' } },
+      summary_development_areas: { type: 'array', nullable: true, items: { type: 'string' } },
+      summary_red_flags: { type: 'array', nullable: true, items: { type: 'string' } },
+      summary_follow_up_questions: { type: 'array', nullable: true, items: { type: 'string' } },
       updated_at: { type: 'string', format: 'date-time', example: '2026-10-16T07:30:00.000Z' }
+    }
+  },
+  ApplicantFormContentSummaryDimension: {
+    type: 'object',
+    properties: {
+      name: { type: 'string', example: 'Communication' },
+      score: { type: 'number', nullable: true, minimum: 1, maximum: 5, example: 4 },
+      confidence: { type: 'string', nullable: true, enum: ['high', 'medium', 'low'], example: 'high' },
+      evidence: { type: 'array', items: { type: 'string' }, example: ['Saya lembur 2 minggu untuk menutup audit'] },
+      reasoning: { type: 'string', nullable: true, example: 'Jawaban terstruktur dan jelas.' }
     }
   },
   ApplicantFormContentSummarizeInput: {
@@ -109,7 +141,7 @@ const applicantFormContentsSchema = {
       file_link_audio: { type: 'string', example: 'https://cloud.motorsights.com/s/4M6jZtj3FgWH38D' },
       transcription_id: { type: 'string', example: '72058640-5531-4c30-8213-faf94cc1f943' },
       instruction: { type: 'string', description: 'Instruction yang dikirim ke API summarize', example: 'Tuliskan kelebihan dan kekurangan kandidat dalam bentuk poin' },
-      instruction_source: { type: 'string', enum: ['master_questions', 'default'], description: 'master_questions = dari db_hrm_master_questions.prompt_ai_summary, default = instruction statis', example: 'master_questions' },
+      instruction_source: { type: 'string', enum: ['master_questions'], nullable: true, description: 'master_questions = dari db_hrm_master_questions.prompt_ai_summary; null = prompt kosong, summarize dilewati', example: 'master_questions' },
       summarize: { type: 'object', nullable: true, description: 'Response mentah dari API summarize', additionalProperties: true }
     }
   },
@@ -130,7 +162,18 @@ const applicantFormContentsSchema = {
       message_speech_text: { type: 'string', nullable: true, example: 'Transcribe berhasil' },
       summary: { type: 'string', nullable: true, description: 'summary_update, atau summary kalau summary_update kosong', example: 'Pelamar memperkenalkan diri ...' },
       status_summary: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], example: 'Success' },
-      message_summary: { type: 'string', nullable: true, example: 'Summarize berhasil' }
+      message_summary: { type: 'string', nullable: true, example: 'Summarize berhasil' },
+      summary_score: { type: 'number', nullable: true, example: 3.85 },
+      summary_rating: { type: 'string', nullable: true, example: 'Good' },
+      summary_answer_relevance: { type: 'string', nullable: true, example: 'relevant' },
+      summary_for_hr: { type: 'string', nullable: true, example: 'Kandidat menjelaskan latar belakang dengan jelas ...' },
+      summary_assessment_focus: { type: 'array', nullable: true, items: { type: 'string' }, example: ['Communication', 'Background', 'Confidence'] },
+      summary_star: { type: 'object', nullable: true, additionalProperties: { type: 'boolean' }, example: { situation: true, task: true, action: true, result: false } },
+      summary_dimensions: { type: 'array', nullable: true, items: { $ref: '#/components/schemas/ApplicantFormContentSummaryDimension' } },
+      summary_strengths: { type: 'array', nullable: true, items: { type: 'string' } },
+      summary_development_areas: { type: 'array', nullable: true, items: { type: 'string' } },
+      summary_red_flags: { type: 'array', nullable: true, items: { type: 'string' } },
+      summary_follow_up_questions: { type: 'array', nullable: true, items: { type: 'string' } }
     }
   },
   ApplicantFormContentResult: {

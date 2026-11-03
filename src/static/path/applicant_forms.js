@@ -308,7 +308,7 @@ const applicantFormsPaths = {
                             },
                             instruction_source: {
                               type: "string",
-                              enum: ["master_questions", "default"],
+                              enum: ["master_questions"],
                               example: "master_questions",
                             },
                           },
