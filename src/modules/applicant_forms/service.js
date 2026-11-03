@@ -333,7 +333,7 @@ const updateSummaryAll = async (payload, user) => {
 // Hit API summarize-all untuk satu applicant form. Payload: { id: applicant_forms.id }.
 // Content applicant form yang sudah punya transcription_id dikirim sekaligus
 // ke API summarize-all, dengan instruction dari prompt_ai_summary master
-// question (fallback ke instruction default).
+// question. Content tanpa prompt_ai_summary dilewati.
 const createSummarizeAll = async (payload, user, token) => {
   const id = normalizeOptionalString(payload.id);
   const contents = await repository.findTranscribedContentsByFormId(id);
@@ -341,6 +341,20 @@ const createSummarizeAll = async (payload, user, token) => {
     throw {
       message: "Tidak ada content interview untuk applicant form ini",
       statusCode: 404,
+    };
+  }
+
+  // transcription_id yang sama cukup dikirim sekali
+  const uniqueContents = [
+    ...new Map(contents.map((item) => [item.transcription_id, item])).values(),
+  ];
+  const resolved = await resolveInstructions(uniqueContents);
+  const items = resolved.filter((item) => item.instruction);
+  if (!items.length) {
+    throw {
+      message:
+        "prompt_ai_summary belum diisi pada master question content interview, summarize dilewati",
+      statusCode: 400,
     };
   }
 
@@ -353,11 +367,6 @@ const createSummarizeAll = async (payload, user, token) => {
     getRequesterId(user),
   );
 
-  // transcription_id yang sama cukup dikirim sekali
-  const uniqueContents = [
-    ...new Map(contents.map((item) => [item.transcription_id, item])).values(),
-  ];
-  const items = await resolveInstructions(uniqueContents);
   const result = await hitSummarizeAll(
     id,
     items.map((item) => ({

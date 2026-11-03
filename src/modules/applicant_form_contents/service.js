@@ -15,6 +15,17 @@ const {
   hitSpeechToText,
 } = require("../applicant_forms/speech_to_text");
 const { SUMMARIZE_ENABLED, hitSummarize } = require("./summarize");
+const {
+  SUMMARY_RESULT_COLUMNS,
+  toSummaryColumns,
+  ratingFromScore,
+} = require("./summary_score");
+
+// Kolom hasil penilaian AI (skor, rating, dimensi, dst.) untuk dimasukkan ke response
+const pickSummaryResult = (item) =>
+  Object.fromEntries(
+    SUMMARY_RESULT_COLUMNS.map((column) => [column, item[column]]),
+  );
 
 const FILE_DIR = `${NEXTCLOUD_UPLOAD_DIR}/ApplicantContents`;
 
@@ -105,6 +116,7 @@ const buildAudioResult = (data) => ({
   message_speech_text: data.message_speech_text,
   summary: data.summary_update ?? data.summary,
   status_summary: data.status_summary,
+  ...pickSummaryResult(data),
   message_summary: data.message_summary,
 });
 
@@ -170,8 +182,8 @@ const processSpeechText = async (fileLinkAudio, user, token) => {
 };
 
 // Hit API summarize manual untuk satu audio. Instruction memakai
-// prompt_ai_summary master question (id_question content), fallback ke
-// instruction default. Hasil summarize dikembalikan langsung di response.
+// prompt_ai_summary master question (id_question content); kalau kosong,
+// summarize dilewati. Hasil summarize dikembalikan langsung di response.
 // Kalau content belum punya transcription_id, proses speech to text dulu
 // (sama seperti POST /audio/:file_link_audio) dan kembalikan data audio-nya.
 const summarizeContent = async (fileLinkAudio, user, token) => {
@@ -210,6 +222,9 @@ const summarizeContent = async (fileLinkAudio, user, token) => {
     transcription_id: existing.transcription_id,
     instruction: result.instruction,
     instruction_source: result.instructionSource,
+    ...(result.skipped
+      ? { skipped: true, message: "prompt_ai_summary belum diisi, summarize dilewati" }
+      : {}),
     summarize: result.data,
   };
 };
@@ -345,6 +360,8 @@ const updateSpeechText = async (payload, user) => {
   }
   if (payload.summary_update !== undefined) {
     data.summary_update = payload.summary_update ?? null;
+    // Hasil penilaian diambil dari JSON; teks lain (hasil edit manual) mengosongkan semua kolomnya
+    Object.assign(data, toSummaryColumns(data.summary_update));
   }
   if (payload.status_summary !== undefined) {
     data.status_summary = normalizeOptionalString(payload.status_summary);
@@ -361,6 +378,22 @@ const updateSpeechText = async (payload, user) => {
     throw { message: "Data content tidak ditemukan", statusCode: 404 };
   }
 
+  // Skor kandidat dihitung ulang dari semua content-nya
+  if (payload.summary_update !== undefined) {
+    const formIds = [
+      ...new Set(updated.map((item) => item.applicant_form_id).filter(Boolean)),
+    ];
+    for (const formId of formIds) {
+      try {
+        await repository.refreshApplicantFormScore(formId, ratingFromScore);
+      } catch (error) {
+        console.error(
+          `[SUMMARY_SCORE] applicant_form_id=${formId}: ${error?.message || error}`,
+        );
+      }
+    }
+  }
+
   return updated.map((item) => ({
     id: item.id,
     applicant_form_id: item.applicant_form_id,
@@ -373,6 +406,7 @@ const updateSpeechText = async (payload, user) => {
     summary_update: item.summary_update,
     status_summary: item.status_summary,
     message_summary: item.message_summary,
+    ...pickSummaryResult(item),
     updated_at: item.updated_at,
   }));
 };

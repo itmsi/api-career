@@ -43,6 +43,8 @@ const SELECT_COLUMNS = [
   "summary_all",
   "summary_all_status",
   "summary_all_message",
+  "summary_score",
+  "summary_rating",
   "created_at",
   "created_by",
   "updated_at",
@@ -165,6 +167,8 @@ const LIST_FORM_COLUMNS = [
   "position_applied_for",
   "city",
   "working_available_date",
+  "summary_score",
+  "summary_rating",
 ];
 
 const JOINED_SELECT_COLUMNS = [
