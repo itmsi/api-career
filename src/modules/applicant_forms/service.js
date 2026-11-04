@@ -97,6 +97,15 @@ const buildPayload = async (payload = {}) => ({
   signature_date: normalizeOptionalString(payload.signature_date)
 })
 
+// Dipakai saat update: field yang tidak dikirim klien dibuang supaya data yang
+// sudah ada di DB tidak tertimpa null. Field yang dikirim null tetap dikosongkan.
+const buildUpdatePayload = async (payload = {}) => {
+  const built = await buildPayload(payload)
+  return Object.fromEntries(
+    Object.entries(built).filter(([field]) => payload[field] !== undefined)
+  )
+}
+
 const nonEmptyLinks = (values) => [
   ...new Set(values.filter((value) => typeof value === 'string' && value.trim() !== '').map((value) => value.trim()))
 ]
@@ -207,7 +216,7 @@ const updateApplicantForm = async (id, payload, user) => {
   }
 
   const updated = await repository.update(invitation.applicant_form_id, {
-    ...(await buildPayload(payload)),
+    ...(await buildUpdatePayload(payload)),
     updated_by: authorId
   })
   await linkUploadsToForm(updated)

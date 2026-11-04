@@ -304,8 +304,10 @@ const create = async (data = {}) => {
   return await findById(inserted.id)
 }
 
+// Update sebagian kolom: hanya key yang ada di `data` yang di-update
+// (payload sudah disaring di service).
 const update = async (id, data = {}) => {
-  const payload = {
+  const fields = {
     full_name: normalizeNullableValue(data.full_name),
     nickname: normalizeNullableValue(data.nickname),
     no_mobile: normalizeNullableValue(data.no_mobile),
@@ -336,14 +338,20 @@ const update = async (id, data = {}) => {
     applicant_form_files: normalizeJsonValue(data.applicant_form_files),
     applicant_form_contents: normalizeJsonValue(data.applicant_form_contents),
     signature_link: normalizeNullableValue(data.signature_link),
-    signature_date: normalizeNullableValue(data.signature_date),
-    updated_by: data.updated_by || null,
-    updated_at: pgCore.fn.now()
+    signature_date: normalizeNullableValue(data.signature_date)
   }
+
+  const payload = Object.fromEntries(
+    Object.entries(fields).filter(([column]) => data[column] !== undefined)
+  )
 
   const [updated] = await pgCore(TABLE_NAME)
     .where({ id, deleted_at: null })
-    .update(payload)
+    .update({
+      ...payload,
+      updated_by: data.updated_by || null,
+      updated_at: pgCore.fn.now()
+    })
     .returning('id')
 
   if (!updated?.id) return null
