@@ -1,5 +1,6 @@
 const axios = require("axios");
 const repository = require("./repository");
+const { resolveInstruction } = require("../applicant_form_contents/summarize");
 
 /**
  * Speech to text untuk file audio applicant form (tanpa antrian).
@@ -76,16 +77,25 @@ const getAudioLinks = (form = {}) => [
  * Hit API speech to text untuk satu audio. Return hasil ringkas; error
  * tidak dilempar supaya looping tetap lanjut ke audio berikutnya.
  */
-const hitSpeechToText = async (contentId, audioUrl, token) => {
+const hitSpeechToText = async (contentId, audioUrl, token, idQuestion) => {
   const startedAt = Date.now();
+  // Prompt ringkasan otomatis berasal dari master_questions.prompt_ai_summary (id_question content).
+  // Kalau kosong, ringkasan otomatis dimatikan karena service AI tidak punya prompt default
+  const instruction = await resolveInstruction(contentId, idQuestion);
   logInfo(
-    `[HIT][START] content_id=${contentId} POST ${SPEECH_TO_TEXT_URL} audio_url=${audioUrl} token=${token ? "ada" : "kosong"}`,
+    `[HIT][START] content_id=${contentId} POST ${SPEECH_TO_TEXT_URL} audio_url=${audioUrl} token=${token ? "ada" : "kosong"} id_question=${idQuestion ?? "-"} summarize=${Boolean(instruction)}`,
   );
 
   try {
     const response = await axios.post(
       SPEECH_TO_TEXT_URL,
-      { audio_url: audioUrl, async: true, force_refresh: true },
+      {
+        audio_url: audioUrl,
+        async: true,
+        force_refresh: true,
+        summarize: Boolean(instruction),
+        ...(instruction ? { instruction } : {}),
+      },
       {
         timeout: REQUEST_TIMEOUT_MS,
         headers: {
@@ -155,7 +165,12 @@ const runSpeechToText = (form, token) => {
         message_speech_text: PENDING_MESSAGE,
       });
 
-      const result = await hitSpeechToText(content.id, audioUrl, authToken);
+      const result = await hitSpeechToText(
+        content.id,
+        audioUrl,
+        authToken,
+        content.id_question,
+      );
       if (!result.ok) {
         const httpInfo = result.httpStatus
           ? ` (HTTP ${result.httpStatus})`

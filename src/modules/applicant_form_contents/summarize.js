@@ -152,6 +152,7 @@ const hitSummarize = async (contentId, transcriptionId, token, idQuestion) => {
 module.exports = {
   SUMMARIZE_ENABLED,
   hitSummarize,
+  resolveInstruction,
   resolveInstructions,
   hitSummarizeAll,
 };
