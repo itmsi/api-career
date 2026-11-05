@@ -121,6 +121,7 @@ const createValidation = [
   ], { maxScalarLength: MAX_LONG }),
   optionalString('signature_link', 'signature_link', { max: MAX_LONG }),
   body('signature_date').optional({ nullable: true }).isDate().withMessage('signature_date harus berupa tanggal yang valid'),
+  body('summary_all').optional({ nullable: true }).isString().withMessage('summary_all harus berupa teks'),
   body('is_delete').optional().isBoolean().withMessage('is_delete harus boolean')
 ]
 
@@ -131,6 +132,24 @@ const updateValidation = [
 
 const getByIdValidation = [
   param('id').notEmpty().withMessage('ID wajib diisi').isUUID().withMessage('Format ID tidak valid')
+]
+
+const summaryAllValidation = [
+  body('transcription_id').notEmpty().withMessage('transcription_id wajib diisi').isString().withMessage('transcription_id harus berupa teks').trim(),
+  body().custom((value) => {
+    const fields = ['summary', 'summary_all_status', 'summary_all_message']
+    if (!fields.some((field) => value?.[field] !== undefined)) {
+      throw new Error('Minimal salah satu dari summary, summary_all_status, summary_all_message wajib dikirim')
+    }
+    return true
+  }),
+  body('summary').optional({ nullable: true }).isString().withMessage('summary harus berupa teks'),
+  body('summary_all_status').optional({ nullable: true }).isIn(['Pending', 'Success', 'Failed']).withMessage('summary_all_status harus Pending, Success, atau Failed'),
+  body('summary_all_message').optional({ nullable: true }).isString().withMessage('summary_all_message harus berupa teks')
+]
+
+const createSummarizeAllValidation = [
+  body('id').notEmpty().withMessage('id wajib diisi').isUUID().withMessage('Format id tidak valid')
 ]
 
 const getListValidation = [
@@ -148,5 +167,7 @@ module.exports = {
   createValidation,
   updateValidation,
   getByIdValidation,
+  summaryAllValidation,
+  createSummarizeAllValidation,
   getListValidation
 }

@@ -80,8 +80,29 @@ const findByIds = async (ids = []) => {
     .where({ deleted_at: null });
 };
 
+// Ambil prompt_ai_summary master question, dipakai sebagai instruction summarize
+const findPromptAiSummaryById = async (id) => {
+  const row = await pgCore(TABLE_NAME)
+    .select("prompt_ai_summary")
+    .where({ id, deleted_at: null })
+    .first();
+  return row?.prompt_ai_summary ?? null;
+};
+
+// Map id -> prompt_ai_summary untuk banyak master question sekaligus
+const findPromptAiSummaryByIds = async (ids = []) => {
+  if (ids.length === 0) return new Map();
+  const rows = await pgCore(TABLE_NAME)
+    .select("id", "prompt_ai_summary")
+    .whereIn("id", ids)
+    .where({ deleted_at: null });
+  return new Map(rows.map((row) => [row.id, row.prompt_ai_summary]));
+};
+
 module.exports = {
   findAll,
   findById,
   findByIds,
+  findPromptAiSummaryById,
+  findPromptAiSummaryByIds,
 };

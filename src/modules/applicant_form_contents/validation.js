@@ -71,6 +71,26 @@ const updateSpeechTextValidation = [
     .optional({ nullable: true })
     .isString()
     .withMessage("message_speech_text harus berupa teks"),
+  body("transcription_id")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("transcription_id harus berupa teks"),
+  body("summary")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("summary harus berupa teks"),
+  body("summary_update")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("summary_update harus berupa teks"),
+  body("status_summary")
+    .optional({ nullable: true })
+    .isIn(["Pending", "Success", "Failed"])
+    .withMessage("status_summary harus Pending, Success, atau Failed"),
+  body("message_summary")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("message_summary harus berupa teks"),
 ];
 
 const getByIdValidation = [
@@ -83,6 +103,15 @@ const getByIdValidation = [
 
 const getByAudioLinkValidation = [
   param("file_link_audio")
+    .notEmpty()
+    .withMessage("file_link_audio wajib diisi")
+    .isString()
+    .withMessage("file_link_audio harus berupa teks")
+    .trim(),
+];
+
+const summarizeValidation = [
+  body("file_link_audio")
     .notEmpty()
     .withMessage("file_link_audio wajib diisi")
     .isString()
@@ -117,5 +146,6 @@ module.exports = {
   updateSpeechTextValidation,
   getByIdValidation,
   getByAudioLinkValidation,
+  summarizeValidation,
   getListValidation,
 };

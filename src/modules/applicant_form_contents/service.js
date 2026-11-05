@@ -14,6 +14,18 @@ const {
   toMessage: toSpeechTextMessage,
   hitSpeechToText,
 } = require("../applicant_forms/speech_to_text");
+const { SUMMARIZE_ENABLED, hitSummarize } = require("./summarize");
+const {
+  SUMMARY_RESULT_COLUMNS,
+  toSummaryColumns,
+  ratingFromScore,
+} = require("./summary_score");
+
+// Kolom hasil penilaian AI (skor, rating, dimensi, dst.) untuk dimasukkan ke response
+const pickSummaryResult = (item) =>
+  Object.fromEntries(
+    SUMMARY_RESULT_COLUMNS.map((column) => [column, item[column]]),
+  );
 
 const FILE_DIR = `${NEXTCLOUD_UPLOAD_DIR}/ApplicantContents`;
 
@@ -91,17 +103,21 @@ const getContentById = async (id) => {
 };
 
 const buildAudioResult = (data) => ({
-    id: data.id,
-    applicant_form_id: data.applicant_form_id,
-    id_question: data.id_question,
-    file_title_audio: data.file_title_audio,
-    file_type_audio: data.file_type_audio,
-    file_name_audio: data.file_name_audio,
-    nextcloud_path_audio: data.nextcloud_path_audio,
-    file_link_audio: data.file_link_audio,
-    speech_text: data.speech_text,
-    status_speech_text: data.status_speech_text,
-    message_speech_text: data.message_speech_text,
+  id: data.id,
+  applicant_form_id: data.applicant_form_id,
+  id_question: data.id_question,
+  file_title_audio: data.file_title_audio,
+  file_type_audio: data.file_type_audio,
+  file_name_audio: data.file_name_audio,
+  nextcloud_path_audio: data.nextcloud_path_audio,
+  file_link_audio: data.file_link_audio,
+  speech_text: data.speech_text,
+  status_speech_text: data.status_speech_text,
+  message_speech_text: data.message_speech_text,
+  summary: data.summary_update ?? data.summary,
+  status_summary: data.status_summary,
+  ...pickSummaryResult(data),
+  message_summary: data.message_summary,
 });
 
 const getContentByAudioLink = async (fileLinkAudio) => {
@@ -117,7 +133,8 @@ const getContentByAudioLink = async (fileLinkAudio) => {
 
 // Proses ulang speech to text satu audio: tandai Pending, lalu hit API
 // speech to text di background. Hasil transcript dikirim service AI lewat
-// POST /update-stt
+// POST /update-stt. Kalau hit berhasil dan content sudah punya
+// transcription_id, lanjut hit API summarize.
 const processSpeechText = async (fileLinkAudio, user, token) => {
   const existing = await repository.findByAudioLink(
     normalizeOptionalString(fileLinkAudio),
@@ -136,7 +153,17 @@ const processSpeechText = async (fileLinkAudio, user, token) => {
   const authToken = process.env.SPEECH_TO_TEXT_TOKEN || token;
   hitSpeechToText(existing.id, existing.file_link_audio, authToken)
     .then(async (result) => {
-      if (result.ok) return;
+      if (result.ok) {
+        if (SUMMARIZE_ENABLED && existing.transcription_id) {
+          await hitSummarize(
+            existing.id,
+            existing.transcription_id,
+            authToken,
+            existing.id_question,
+          );
+        }
+        return;
+      }
       const httpInfo = result.httpStatus ? ` (HTTP ${result.httpStatus})` : "";
       await repository.updateSpeechTextById(existing.id, {
         status_speech_text: SPEECH_TEXT_STATUS.FAILED,
@@ -152,6 +179,54 @@ const processSpeechText = async (fileLinkAudio, user, token) => {
     });
 
   return buildAudioResult(updated);
+};
+
+// Hit API summarize manual untuk satu audio. Instruction memakai
+// prompt_ai_summary master question (id_question content); kalau kosong,
+// summarize dilewati. Hasil summarize dikembalikan langsung di response.
+// Kalau content belum punya transcription_id, proses speech to text dulu
+// (sama seperti POST /audio/:file_link_audio) dan kembalikan data audio-nya.
+const summarizeContent = async (fileLinkAudio, user, token) => {
+  const existing = await repository.findByAudioLink(
+    normalizeOptionalString(fileLinkAudio),
+  );
+  if (!existing) {
+    throw { message: "Data content tidak ditemukan", statusCode: 404 };
+  }
+  if (!existing.transcription_id) {
+    return {
+      speech_text_processed: true,
+      ...(await processSpeechText(existing.file_link_audio, user, token)),
+    };
+  }
+
+  const authToken = process.env.SPEECH_TO_TEXT_TOKEN || token;
+  const result = await hitSummarize(
+    existing.id,
+    existing.transcription_id,
+    authToken,
+    existing.id_question,
+  );
+  if (!result.ok) {
+    const httpInfo = result.httpStatus ? ` (HTTP ${result.httpStatus})` : "";
+    throw {
+      message: `Gagal hit API summarize${httpInfo}: ${toSpeechTextMessage(result.data ?? result.reason)}`,
+      statusCode: 502,
+    };
+  }
+
+  return {
+    id: existing.id,
+    id_question: existing.id_question,
+    file_link_audio: existing.file_link_audio,
+    transcription_id: existing.transcription_id,
+    instruction: result.instruction,
+    instruction_source: result.instructionSource,
+    ...(result.skipped
+      ? { skipped: true, message: "prompt_ai_summary belum diisi, summarize dilewati" }
+      : {}),
+    summarize: result.data,
+  };
 };
 
 const createContent = async (payload, files, user) => {
@@ -270,10 +345,29 @@ const updateSpeechText = async (payload, user) => {
     data.speech_text = payload.speech_text ?? null;
   }
   if (payload.status_speech_text !== undefined) {
-    data.status_speech_text = normalizeOptionalString(payload.status_speech_text);
+    data.status_speech_text = normalizeOptionalString(
+      payload.status_speech_text,
+    );
   }
   if (payload.message_speech_text !== undefined) {
     data.message_speech_text = truncateMessage(payload.message_speech_text);
+  }
+  if (payload.transcription_id !== undefined) {
+    data.transcription_id = normalizeOptionalString(payload.transcription_id);
+  }
+  if (payload.summary !== undefined) {
+    data.summary = payload.summary ?? null;
+  }
+  if (payload.summary_update !== undefined) {
+    data.summary_update = payload.summary_update ?? null;
+    // Hasil penilaian diambil dari JSON; teks lain (hasil edit manual) mengosongkan semua kolomnya
+    Object.assign(data, toSummaryColumns(data.summary_update));
+  }
+  if (payload.status_summary !== undefined) {
+    data.status_summary = normalizeOptionalString(payload.status_summary);
+  }
+  if (payload.message_summary !== undefined) {
+    data.message_summary = truncateMessage(payload.message_summary);
   }
 
   const updated = await repository.updateSpeechTextByAudioLink(
@@ -284,6 +378,22 @@ const updateSpeechText = async (payload, user) => {
     throw { message: "Data content tidak ditemukan", statusCode: 404 };
   }
 
+  // Skor kandidat dihitung ulang dari semua content-nya
+  if (payload.summary_update !== undefined) {
+    const formIds = [
+      ...new Set(updated.map((item) => item.applicant_form_id).filter(Boolean)),
+    ];
+    for (const formId of formIds) {
+      try {
+        await repository.refreshApplicantFormScore(formId, ratingFromScore);
+      } catch (error) {
+        console.error(
+          `[SUMMARY_SCORE] applicant_form_id=${formId}: ${error?.message || error}`,
+        );
+      }
+    }
+  }
+
   return updated.map((item) => ({
     id: item.id,
     applicant_form_id: item.applicant_form_id,
@@ -291,6 +401,12 @@ const updateSpeechText = async (payload, user) => {
     speech_text: item.speech_text,
     status_speech_text: item.status_speech_text,
     message_speech_text: item.message_speech_text,
+    transcription_id: item.transcription_id,
+    summary: item.summary,
+    summary_update: item.summary_update,
+    status_summary: item.status_summary,
+    message_summary: item.message_summary,
+    ...pickSummaryResult(item),
     updated_at: item.updated_at,
   }));
 };
@@ -316,6 +432,7 @@ module.exports = {
   getContentById,
   getContentByAudioLink,
   processSpeechText,
+  summarizeContent,
   createContent,
   updateContent,
   updateSpeechText,

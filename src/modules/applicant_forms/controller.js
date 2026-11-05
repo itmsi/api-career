@@ -51,6 +51,25 @@ const update = async (req, res) => {
   }
 }
 
+const updateSummaryAll = async (req, res) => {
+  try {
+    const data = await service.updateSummaryAll(req.body, req.user)
+    return successResponse(res, data, 'Summary applicant form berhasil diupdate')
+  } catch (error) {
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+  }
+}
+
+const createSummarizeAll = async (req, res) => {
+  try {
+    const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || null
+    const data = await service.createSummarizeAll(req.body, req.user, token)
+    return successResponse(res, data, 'Summarize all berhasil')
+  } catch (error) {
+    return errorResponse(res, error?.message || error, error?.statusCode || 500)
+  }
+}
+
 const remove = async (req, res) => {
   try {
     const { id } = req.params
@@ -66,5 +85,7 @@ module.exports = {
   getById,
   create,
   update,
+  updateSummaryAll,
+  createSummarizeAll,
   remove
 }
