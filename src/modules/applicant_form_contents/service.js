@@ -151,7 +151,12 @@ const processSpeechText = async (fileLinkAudio, user, token) => {
   });
 
   const authToken = process.env.SPEECH_TO_TEXT_TOKEN || token;
-  hitSpeechToText(existing.id, existing.file_link_audio, authToken)
+  hitSpeechToText(
+    existing.id,
+    existing.file_link_audio,
+    authToken,
+    existing.id_question,
+  )
     .then(async (result) => {
       if (result.ok) {
         if (SUMMARIZE_ENABLED && existing.transcription_id) {

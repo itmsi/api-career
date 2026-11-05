@@ -433,7 +433,7 @@ const findFileByLink = async (link) => {
 
 const findContentByLink = async (kind, link) => {
   return await pgCore("applicant_form_contents")
-    .select("id", `nextcloud_path_${kind} as nextcloud_path`)
+    .select("id", "id_question", `nextcloud_path_${kind} as nextcloud_path`)
     .where({ [`file_link_${kind}`]: link, deleted_at: null })
     .first();
 };
