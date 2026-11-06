@@ -441,4 +441,5 @@ module.exports = {
   updateSummaryAll,
   createSummarizeAll,
   deleteApplicantForm,
+  linkUploadsToForm,
 };
