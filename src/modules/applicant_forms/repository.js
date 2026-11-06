@@ -37,7 +37,7 @@ const SELECT_COLUMNS = [
   "references_old_company",
   "following_answers",
   "applicant_form_files",
-  // 'applicant_form_contents',
+  "applicant_form_contents",
   "signature_link",
   "signature_date",
   "summary_all",
@@ -159,6 +159,7 @@ const REST_FORM_COLUMNS = SELECT_COLUMNS.filter(
       "updated_by",
       "deleted_at",
       "deleted_by",
+      "applicant_form_contents",
     ].includes(column),
 );
 
