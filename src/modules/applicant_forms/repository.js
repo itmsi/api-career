@@ -37,7 +37,7 @@ const SELECT_COLUMNS = [
   "references_old_company",
   "following_answers",
   "applicant_form_files",
-  // 'applicant_form_contents',
+  "applicant_form_contents",
   "signature_link",
   "signature_date",
   "summary_all",
@@ -159,6 +159,7 @@ const REST_FORM_COLUMNS = SELECT_COLUMNS.filter(
       "updated_by",
       "deleted_at",
       "deleted_by",
+      "applicant_form_contents",
     ].includes(column),
 );
 
@@ -433,7 +434,7 @@ const findFileByLink = async (link) => {
 
 const findContentByLink = async (kind, link) => {
   return await pgCore("applicant_form_contents")
-    .select("id", `nextcloud_path_${kind} as nextcloud_path`)
+    .select("id", "id_question", `nextcloud_path_${kind} as nextcloud_path`)
     .where({ [`file_link_${kind}`]: link, deleted_at: null })
     .first();
 };
