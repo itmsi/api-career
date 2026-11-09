@@ -95,7 +95,7 @@ const applicantFormsSchema = {
       summary_all_status: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], description: 'Status proses summarize all', example: 'Success' },
       summary_all_message: { type: 'string', nullable: true, description: 'Pesan proses summarize all', example: 'Proses created summary all on AI' },
       summary_score: { type: 'number', nullable: true, minimum: 0, maximum: 5, description: 'Skor kandidat = rata-rata summary_score semua audio miliknya (skala 0-5). Dihitung ulang otomatis; null kalau belum ada audio yang dinilai', example: 3.72 },
-      summary_rating: { type: 'string', nullable: true, enum: ['Strong', 'Good', 'Consider', 'Concern'], description: 'Rating kandidat dari summary_score: Strong >= 4,20; Good >= 3,40; Consider >= 2,60; selain itu Concern', example: 'Good' },
+      summary_rating: { type: 'string', nullable: true, enum: ['Strongly Recommended', 'Recommended', 'Consider', 'Not Recommended'], description: 'Rekomendasi kandidat dari summary_score (rata-rata skor semua audio): Strongly Recommended >= 4,20; Recommended >= 3,40; Consider >= 2,60; selain itu Not Recommended. Berbasis skor saja, tanpa aturan penurunan summary all', example: 'Recommended' },
       is_delete: { type: 'boolean', nullable: true, example: false }
     }
   },
@@ -254,7 +254,7 @@ const applicantFormsSchema = {
       summary_all_status: { type: 'string', nullable: true, enum: ['Pending', 'Success', 'Failed'], description: 'Status proses summarize all', example: 'Success' },
       summary_all_message: { type: 'string', nullable: true, description: 'Pesan proses summarize all', example: 'Proses created summary all on AI' },
       summary_score: { type: 'number', nullable: true, minimum: 0, maximum: 5, description: 'Skor kandidat = rata-rata summary_score semua audio miliknya (skala 0-5). Dihitung ulang otomatis; null kalau belum ada audio yang dinilai', example: 3.72 },
-      summary_rating: { type: 'string', nullable: true, enum: ['Strong', 'Good', 'Consider', 'Concern'], description: 'Rating kandidat dari summary_score: Strong >= 4,20; Good >= 3,40; Consider >= 2,60; selain itu Concern', example: 'Good' },
+      summary_rating: { type: 'string', nullable: true, enum: ['Strongly Recommended', 'Recommended', 'Consider', 'Not Recommended'], description: 'Rekomendasi kandidat dari summary_score (rata-rata skor semua audio): Strongly Recommended >= 4,20; Recommended >= 3,40; Consider >= 2,60; selain itu Not Recommended. Berbasis skor saja, tanpa aturan penurunan summary all', example: 'Recommended' },
       created_at: { type: 'string', format: 'date-time' },
       created_by: { type: 'string', nullable: true },
       updated_at: { type: 'string', format: 'date-time' },

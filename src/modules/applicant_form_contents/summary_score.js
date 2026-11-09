@@ -138,9 +138,22 @@ const ratingFromScore = (score) => {
   return "Concern";
 };
 
+// Rekomendasi kandidat (applicant_forms.summary_rating) dari rata-rata skor.
+// Ambang sama dengan ratingFromScore, tetapi labelnya memakai tabel rekomendasi
+// summary all. Aturan penurunan (red flag integritas, pilar lemah, dst.) tidak
+// dihitung di sini karena hanya berbasis skor; lihat summary_all untuk hasil akhirnya.
+const recommendationFromScore = (score) => {
+  if (score === null || score === undefined) return null;
+  if (score >= 4.2) return "Strongly Recommended";
+  if (score >= 3.4) return "Recommended";
+  if (score >= 2.6) return "Consider";
+  return "Not Recommended";
+};
+
 module.exports = {
   SUMMARY_RESULT_COLUMNS,
   parseSummaryResult,
   toSummaryColumns,
   ratingFromScore,
+  recommendationFromScore,
 };

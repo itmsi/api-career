@@ -18,7 +18,7 @@ const { SUMMARIZE_ENABLED, hitSummarize } = require("./summarize");
 const {
   SUMMARY_RESULT_COLUMNS,
   toSummaryColumns,
-  ratingFromScore,
+  recommendationFromScore,
 } = require("./summary_score");
 
 // Kolom hasil penilaian AI (skor, rating, dimensi, dst.) untuk dimasukkan ke response
@@ -390,7 +390,10 @@ const updateSpeechText = async (payload, user) => {
     ];
     for (const formId of formIds) {
       try {
-        await repository.refreshApplicantFormScore(formId, ratingFromScore);
+        await repository.refreshApplicantFormScore(
+          formId,
+          recommendationFromScore,
+        );
       } catch (error) {
         console.error(
           `[SUMMARY_SCORE] applicant_form_id=${formId}: ${error?.message || error}`,

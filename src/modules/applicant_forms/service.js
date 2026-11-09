@@ -1,3 +1,5 @@
+const fs = require("fs");
+const path = require("path");
 const repository = require("./repository");
 const invitationsRepository = require("../applicant_invitations/repository");
 const masterQuestionsRepository = require("../master_questions/repository");
@@ -330,6 +332,57 @@ const updateSummaryAll = async (payload, user) => {
   };
 };
 
+const DEFAULT_SUMMARY_ALL_INSTRUCTION_FILE = path.join(
+  __dirname,
+  "../../static/prompts/summary_all_instruction.txt",
+);
+
+// Instruksi khusus summarize all. Prioritas:
+// 1. file (SUMMARY_ALL_INSTRUCTION_FILE, default src/static/prompts/summary_all_instruction.txt),
+//    dibaca setiap kali dipakai sehingga edit file tidak perlu restart;
+// 2. env SUMMARY_ALL_INSTRUCTION kalau file tidak ada / kosong ("\n" literal
+//    diubah jadi baris baru).
+// Service AI menolak instruction > 20000 karakter.
+const getSummaryAllInstruction = () => {
+  const filePath =
+    process.env.SUMMARY_ALL_INSTRUCTION_FILE ||
+    DEFAULT_SUMMARY_ALL_INSTRUCTION_FILE;
+  try {
+    const fromFile = fs.readFileSync(filePath, "utf8").trim();
+    if (fromFile) return fromFile;
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      console.error(
+        `[SUMMARIZE] [ALL] gagal membaca ${filePath}: ${error?.message || error}`,
+      );
+    }
+  }
+  const raw = process.env.SUMMARY_ALL_INSTRUCTION;
+  if (typeof raw !== "string") return null;
+  const text = raw.replace(/\\n/g, "\n").trim();
+  return text === "" ? null : text;
+};
+
+// Urutkan berdasarkan step master question (angka dulu secara natural);
+// step kosong di belakang, urutan awal (created_at) dipertahankan saat sama.
+const sortByStep = (items) =>
+  items
+    .map((item, index) => ({ item, index }))
+    .sort((a, b) => {
+      const stepA = a.item.step;
+      const stepB = b.item.step;
+      if (stepA && stepB) {
+        const cmp = String(stepA).localeCompare(String(stepB), undefined, {
+          numeric: true,
+        });
+        if (cmp !== 0) return cmp;
+      } else if (stepA || stepB) {
+        return stepA ? -1 : 1;
+      }
+      return a.index - b.index;
+    })
+    .map(({ item }) => item);
+
 // Hit API summarize-all untuk satu applicant form. Payload: { id: applicant_forms.id }.
 // Content applicant form yang sudah punya transcription_id dikirim sekaligus
 // ke API summarize-all, dengan instruction dari prompt_ai_summary master
@@ -349,8 +402,50 @@ const createSummarizeAll = async (payload, user, token) => {
     ...new Map(contents.map((item) => [item.transcription_id, item])).values(),
   ];
   const resolved = await resolveInstructions(uniqueContents);
+
+  // Pertanyaan tiap jawaban (dari master question) dan urutannya (step), supaya
+  // service AI menerima: pertanyaan + transkrip + ringkasan, berurutan.
+  const questionIds = [
+    ...new Set(
+      resolved
+        .map((item) => item.id_question)
+        .filter((qid) => qid && UUID_REGEX.test(qid)),
+    ),
+  ];
+  const questions = await masterQuestionsRepository.findByIds(questionIds);
+  const questionById = new Map(questions.map((q) => [q.id, q]));
+  const describe = (item) => {
+    const question = questionById.get(item.id_question);
+    return {
+      transcription_id: item.transcription_id,
+      question: question?.question_id || question?.question_en || null,
+      step: question?.step ?? item.step ?? null,
+    };
+  };
+
+  // Instruksi khusus summarize all (file/env) berdiri sendiri: dikirim sebagai
+  // item pertama memakai transcription_id pertama (API menuntut tiap item
+  // punya transcription_id) dan menggantikan prompt_ai_summary per pertanyaan,
+  // karena prompt per pertanyaan adalah prompt penilai per video dan akan
+  // membuat model menilai ulang. Semua jawaban ikut dikirim, urut sesuai step.
+  // Tanpa instruksi khusus, perilaku lama: hanya jawaban ber-prompt_ai_summary.
+  const customInstruction = getSummaryAllInstruction();
+  let requestItems;
+  if (customInstruction) {
+    requestItems = sortByStep(resolved.map(describe));
+    requestItems.unshift({
+      transcription_id: requestItems[0].transcription_id,
+      instruction: customInstruction,
+    });
+  } else {
+    requestItems = sortByStep(
+      resolved
+        .filter((item) => item.instruction)
+        .map((item) => ({ ...describe(item), instruction: item.instruction })),
+    );
+  }
   const items = resolved.filter((item) => item.instruction);
-  if (!items.length) {
+  if (!requestItems.length) {
     throw {
       message:
         "prompt_ai_summary belum diisi pada master question content interview, summarize dilewati",
@@ -369,10 +464,7 @@ const createSummarizeAll = async (payload, user, token) => {
 
   const result = await hitSummarizeAll(
     id,
-    items.map((item) => ({
-      transcription_id: item.transcription_id,
-      instruction: item.instruction,
-    })),
+    requestItems,
     process.env.SPEECH_TO_TEXT_TOKEN || token,
   );
   if (!result.ok) {
