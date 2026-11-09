@@ -494,7 +494,13 @@ const findContentByTranscriptionId = async (transcriptionId) => {
 // sudah punya transcription_id
 const findTranscribedContentsByFormId = async (applicantFormId) => {
   return await pgCore("applicant_form_contents")
-    .select("id", "applicant_form_id", "id_question", "transcription_id")
+    .select(
+      "id",
+      "applicant_form_id",
+      "id_question",
+      "transcription_id",
+      "step",
+    )
     .where({ applicant_form_id: applicantFormId, deleted_at: null })
     .whereNotNull("transcription_id")
     .whereNot("transcription_id", "")
