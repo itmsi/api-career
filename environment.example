@@ -222,6 +222,12 @@ SPEECH_TO_TEXT_URL=https://dev-api-mosa.motorsights.com/api/mosa/ai-assistant/sp
 # Bearer token API speech to text. Kosong = pakai token undangan applicant-form dari request create
 SPEECH_TO_TEXT_TOKEN=
 # API summarize, dipanggil setelah hit speech to text kalau content sudah punya transcription_id
+# Instruksi khusus ringkasan keseluruhan (summarize all). Dibaca dari file
+# (default src/static/prompts/summary_all_instruction.txt); kalau file tidak ada
+# atau kosong, dipakai SUMMARY_ALL_INSTRUCTION (tulis baris baru sebagai \n).
+# Kalau terisi, menggantikan prompt_ai_summary per pertanyaan.
+SUMMARY_ALL_INSTRUCTION_FILE=
+SUMMARY_ALL_INSTRUCTION=
 SUMMARIZE_ENABLED=false
 SUMMARIZE_URL=https://dev-api-mosa.motorsights.com/api/mosa/ai-assistant/summarize
 
