@@ -4,6 +4,7 @@ const repository = require("./repository");
 const {
   buildComputedScores,
   extractRecommendation,
+  extractOverallScore,
 } = require("./summary_all_scores");
 const invitationsRepository = require("../applicant_invitations/repository");
 const masterQuestionsRepository = require("../master_questions/repository");
@@ -331,6 +332,9 @@ const updateSummaryAll = async (payload, user) => {
   ) {
     const recommendation = extractRecommendation(data.summary_all);
     if (recommendation) data.summary_rating = recommendation;
+    // Skor keseluruhan dari AI (sama dengan computed_scores yang dikirim career)
+    const overallScore = extractOverallScore(data.summary_all);
+    if (overallScore !== null) data.summary_score = overallScore;
   }
 
   const updated = await repository.updateSummaryAll(
@@ -341,6 +345,7 @@ const updateSummaryAll = async (payload, user) => {
   return {
     id: updated.id,
     transcription_id: transcriptionId,
+    summary_score: updated.summary_score,
     summary_rating: updated.summary_rating,
     summary_all: updated.summary_all,
     summary_all_status: updated.summary_all_status,

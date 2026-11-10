@@ -137,7 +137,7 @@ const applicantFormsPaths = {
       tags: ["Applicant Forms"],
       summary: "Update summary_all applicant form berdasarkan transcription_id",
       description:
-        "Cari applicant_form_contents berdasarkan transcription_id, ambil applicant_form_id-nya, lalu update applicant_forms (id = applicant_form_id): summary -> summary_all, summary_all_status, summary_all_message. Kalau summary berupa JSON yang punya field recommendation valid (Strongly Recommended, Recommended, Consider, Not Recommended) dan statusnya bukan Failed, nilainya juga disimpan ke applicant_forms.summary_rating, menggantikan rating berbasis skor. Semua field selain transcription_id opsional (minimal satu dikirim); yang tidak dikirim tidak diubah, kirim null untuk mengosongkan.",
+        "Cari applicant_form_contents berdasarkan transcription_id, ambil applicant_form_id-nya, lalu update applicant_forms (id = applicant_form_id): summary -> summary_all, summary_all_status, summary_all_message. Kalau summary berupa JSON yang punya field recommendation valid (Strongly Recommended, Recommended, Consider, Not Recommended) dan statusnya bukan Failed, nilainya juga disimpan ke applicant_forms.summary_rating, menggantikan rating berbasis skor; scores.overall_score_5 (0-5) di JSON yang sama disimpan ke applicant_forms.summary_score. Semua field selain transcription_id opsional (minimal satu dikirim); yang tidak dikirim tidak diubah, kirim null untuk mengosongkan.",
       security: [{ bearerAuth: [] }],
       requestBody: {
         required: true,

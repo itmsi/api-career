@@ -524,6 +524,7 @@ const updateSummaryAll = async (id, data = {}, updatedBy) => {
       "summary_all",
       "summary_all_status",
       "summary_all_message",
+      "summary_score",
       "summary_rating",
       "updated_at",
     ]);

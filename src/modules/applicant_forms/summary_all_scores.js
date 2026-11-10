@@ -157,26 +157,44 @@ const buildComputedScores = (answers = []) => {
   };
 };
 
-// Rekomendasi akhir dari JSON hasil summary all (field `recommendation`), sudah termasuk
-// aturan penurunan. null kalau teks bukan JSON atau nilainya bukan salah satu dari empat label.
-const extractRecommendation = (summaryText) => {
+const parseSummaryJson = (summaryText) => {
   if (typeof summaryText !== "string") return null;
   const start = summaryText.indexOf("{");
   const end = summaryText.lastIndexOf("}");
   if (start === -1 || end <= start) return null;
   try {
     const parsed = JSON.parse(summaryText.slice(start, end + 1));
-    const value =
-      typeof parsed?.recommendation === "string"
-        ? parsed.recommendation.trim().toLowerCase()
-        : "";
-    return (
-      RECOMMENDATION_ORDER.find((label) => label.toLowerCase() === value) ??
-      null
-    );
+    return parsed && typeof parsed === "object" ? parsed : null;
   } catch {
     return null;
   }
 };
 
-module.exports = { buildComputedScores, extractRecommendation };
+// Rekomendasi akhir dari JSON hasil summary all (field `recommendation`), sudah termasuk
+// aturan penurunan. null kalau teks bukan JSON atau nilainya bukan salah satu dari empat label.
+const extractRecommendation = (summaryText) => {
+  const value =
+    typeof parseSummaryJson(summaryText)?.recommendation === "string"
+      ? parseSummaryJson(summaryText).recommendation.trim().toLowerCase()
+      : "";
+  return (
+    RECOMMENDATION_ORDER.find((label) => label.toLowerCase() === value) ?? null
+  );
+};
+
+// Skor keseluruhan dari JSON hasil summary all (scores.overall_score_5), skala 0-5,
+// 2 desimal. null kalau tidak ada atau di luar rentang.
+const extractOverallScore = (summaryText) => {
+  const raw = parseSummaryJson(summaryText)?.scores?.overall_score_5;
+  const number =
+    typeof raw === "string" ? Number(raw.trim().replace(",", ".")) : raw;
+  if (typeof number !== "number" || !Number.isFinite(number)) return null;
+  if (number < 0 || number > 5) return null;
+  return round2(number);
+};
+
+module.exports = {
+  buildComputedScores,
+  extractRecommendation,
+  extractOverallScore,
+};
