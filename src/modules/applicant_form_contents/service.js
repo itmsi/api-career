@@ -341,8 +341,109 @@ const truncateMessage = (value) => {
     : text;
 };
 
+// ---- Pipeline otomatis: STT selesai -> summarize per jawaban -> summary all ----
+// Summarize per jawaban butuh SUMMARIZE_ENABLED=true; summary all otomatis butuh
+// SUMMARY_ALL_AUTO=true. Semuanya background (fire-and-forget) dan kegagalan hanya
+// dicatat di status/log, tidak menggagalkan callback.
+const AUTO_LOG_PREFIX = "[AUTO]";
+const SUMMARY_PENDING_MESSAGE = "Proses summarize on Mosa AI";
+
+const autoSummarizeRow = async (row, authToken) => {
+  if (!SUMMARIZE_ENABLED || !row?.transcription_id) return;
+  // Callback bisa dikirim ulang oleh service AI: jangan summarize dua kali
+  if (row.status_summary === "Pending" || row.status_summary === "Success") {
+    return;
+  }
+
+  await repository.updateSpeechTextById(row.id, {
+    status_summary: "Pending",
+    message_summary: SUMMARY_PENDING_MESSAGE,
+  });
+  const result = await hitSummarize(
+    row.id,
+    row.transcription_id,
+    authToken,
+    row.id_question,
+  );
+  if (result.skipped) {
+    await repository.updateSpeechTextById(row.id, {
+      status_summary: null,
+      message_summary: "prompt_ai_summary belum diisi, summarize dilewati",
+    });
+    return;
+  }
+  if (!result.ok) {
+    const httpInfo = result.httpStatus ? ` (HTTP ${result.httpStatus})` : "";
+    await repository.updateSpeechTextById(row.id, {
+      status_summary: "Failed",
+      message_summary: truncateMessage(
+        `Gagal hit API summarize${httpInfo}: ${toSpeechTextMessage(result.data ?? result.reason)}`,
+      ),
+    });
+  }
+};
+
+const triggerSummaryAllIfReady = async (formId, user, authToken) => {
+  if (process.env.SUMMARY_ALL_AUTO !== "true" || !formId) return;
+
+  // Hanya jalan kalau semua jawaban beraudio form ini sudah punya summary Success
+  const { total, pending } = await repository.countSummaryProgress(formId);
+  if (total === 0 || pending > 0) return;
+
+  // Lazy require: applicant_forms/service tidak boleh ikut ter-load saat modul ini dibuat
+  const formsRepository = require("../applicant_forms/repository");
+  const claimed = await formsRepository.claimSummaryAll(
+    formId,
+    getRequesterId(user),
+  );
+  if (!claimed) return;
+
+  console.info(`${AUTO_LOG_PREFIX} summary all applicant_form_id=${formId}`);
+  const formsService = require("../applicant_forms/service");
+  try {
+    await formsService.createSummarizeAll({ id: formId }, user, authToken);
+  } catch (error) {
+    await formsRepository.updateSummaryAll(
+      formId,
+      {
+        summary_all_status: "Failed",
+        summary_all_message: truncateMessage(
+          error?.message || String(error),
+        ),
+      },
+      getRequesterId(user),
+    );
+  }
+};
+
+const runAutoPipeline = (payload, rows, user, token) => {
+  const sttDone =
+    normalizeOptionalString(payload.status_speech_text) ===
+      SPEECH_TEXT_STATUS.SUCCESS && Boolean(payload.transcription_id);
+  const summaryDone =
+    normalizeOptionalString(payload.status_summary) === "Success";
+  if (!sttDone && !summaryDone) return;
+
+  const authToken = process.env.SPEECH_TO_TEXT_TOKEN || token;
+  (async () => {
+    if (sttDone) {
+      for (const row of rows) await autoSummarizeRow(row, authToken);
+    }
+    if (summaryDone) {
+      const formIds = [
+        ...new Set(rows.map((row) => row.applicant_form_id).filter(Boolean)),
+      ];
+      for (const formId of formIds) {
+        await triggerSummaryAllIfReady(formId, user, authToken);
+      }
+    }
+  })().catch((error) => {
+    console.error(`${AUTO_LOG_PREFIX} ${error?.message || error}`);
+  });
+};
+
 // Callback hasil speech to text: update content berdasarkan file_link_audio
-const updateSpeechText = async (payload, user) => {
+const updateSpeechText = async (payload, user, token) => {
   const fileLinkAudio = normalizeOptionalString(payload.file_link_audio);
   const data = { updated_by: getRequesterId(user) };
 
@@ -401,6 +502,8 @@ const updateSpeechText = async (payload, user) => {
       }
     }
   }
+
+  runAutoPipeline(payload, updated, user, token);
 
   return updated.map((item) => ({
     id: item.id,

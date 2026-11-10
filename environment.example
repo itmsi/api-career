@@ -221,6 +221,12 @@ APPLICANT_FORM_URL=https://career.motorsights.com/applicant-form
 SPEECH_TO_TEXT_URL=https://dev-api-mosa.motorsights.com/api/mosa/ai-assistant/speech-to-text
 # Bearer token API speech to text. Kosong = pakai token undangan applicant-form dari request create
 SPEECH_TO_TEXT_TOKEN=
+# Pipeline otomatis setelah pelamar submit: STT selesai -> summarize per jawaban
+# (butuh SUMMARIZE_ENABLED=true) -> semua jawaban ter-summarize -> summary all
+# (butuh SUMMARY_ALL_AUTO=true). Wajib mengisi SPEECH_TO_TEXT_TOKEN dengan token SSO,
+# karena callback service AI ke career memakai token itu dan token undangan
+# pelamar tidak lolos verifyToken.
+SUMMARY_ALL_AUTO=false
 # API summarize, dipanggil setelah hit speech to text kalau content sudah punya transcription_id
 # Instruksi khusus ringkasan keseluruhan (summarize all). Dibaca dari file
 # (default src/static/prompts/summary_all_instruction.txt); kalau file tidak ada
