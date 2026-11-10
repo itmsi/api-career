@@ -112,7 +112,9 @@ const update = async (req, res) => {
 
 const updateSpeechText = async (req, res) => {
   try {
-    const data = await service.updateSpeechText(req.body, req.user);
+    const token =
+      req.headers.authorization?.replace(/^Bearer\s+/i, "") || null;
+    const data = await service.updateSpeechText(req.body, req.user, token);
     return successResponse(res, data, "Speech to text berhasil diupdate");
   } catch (error) {
     return errorResponse(

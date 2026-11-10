@@ -207,6 +207,22 @@ const updateSpeechTextByAudioLink = async (fileLinkAudio, data = {}) => {
   return updated;
 };
 
+// Pipeline otomatis: jumlah content beraudio milik applicant form dan berapa yang
+// summary-nya belum Success. Dipakai untuk menentukan kapan summary all boleh jalan.
+const countSummaryProgress = async (applicantFormId) => {
+  const row = await pgCore(TABLE_NAME)
+    .where({ applicant_form_id: applicantFormId, deleted_at: null })
+    .whereNotNull("file_link_audio")
+    .select(
+      pgCore.raw("count(*)::int as total"),
+      pgCore.raw(
+        "(count(*) filter (where status_summary is distinct from 'Success'))::int as pending",
+      ),
+    )
+    .first();
+  return { total: row?.total ?? 0, pending: row?.pending ?? 0 };
+};
+
 // Skor kandidat = rata-rata summary_score semua content aktif miliknya.
 // Kosong (null) kalau belum ada content yang punya skor
 const refreshApplicantFormScore = async (applicantFormId, ratingFromScore) => {
@@ -265,6 +281,7 @@ module.exports = {
   create,
   update,
   updateSpeechTextByAudioLink,
+  countSummaryProgress,
   refreshApplicantFormScore,
   updateSpeechTextById,
   remove,

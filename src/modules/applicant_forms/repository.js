@@ -532,6 +532,27 @@ const updateSummaryAll = async (id, data = {}, updatedBy) => {
   return updated || null;
 };
 
+// Pipeline otomatis: "klaim" summary all secara atomik supaya dua callback yang
+// bersamaan tidak menjalankannya dua kali. Berhasil (return id) hanya kalau status
+// belum Pending, atau Pending yang sudah macet lebih dari 30 menit.
+const claimSummaryAll = async (id, updatedBy) => {
+  const [claimed] = await pgCore(TABLE_NAME)
+    .where({ id, deleted_at: null })
+    .andWhere(function () {
+      this.whereNull("summary_all_status")
+        .orWhereNot("summary_all_status", "Pending")
+        .orWhereRaw("updated_at < now() - interval '30 minutes'");
+    })
+    .update({
+      summary_all_status: "Pending",
+      summary_all_message: "Proses created summary all on AI (otomatis)",
+      updated_by: updatedBy || null,
+      updated_at: pgCore.fn.now(),
+    })
+    .returning("id");
+  return claimed?.id || null;
+};
+
 // Dipakai proses antrian speech to text (lihat ./speech_to_text.js)
 const updateSpeechText = async (contentId, data = {}) => {
   return await pgCore("applicant_form_contents")
@@ -568,6 +589,7 @@ module.exports = {
   linkContentsToForm,
   findContentByTranscriptionId,
   findTranscribedContentsByFormId,
+  claimSummaryAll,
   updateSummaryAll,
   updateSpeechText,
   updateNextcloudPath,
