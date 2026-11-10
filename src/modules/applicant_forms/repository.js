@@ -500,6 +500,9 @@ const findTranscribedContentsByFormId = async (applicantFormId) => {
       "id_question",
       "transcription_id",
       "step",
+      "summary_score",
+      "summary_rating",
+      "summary_dimensions",
     )
     .where({ applicant_form_id: applicantFormId, deleted_at: null })
     .whereNotNull("transcription_id")
@@ -521,6 +524,8 @@ const updateSummaryAll = async (id, data = {}, updatedBy) => {
       "summary_all",
       "summary_all_status",
       "summary_all_message",
+      "summary_score",
+      "summary_rating",
       "updated_at",
     ]);
 

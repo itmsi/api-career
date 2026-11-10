@@ -1,6 +1,11 @@
 const fs = require("fs");
 const path = require("path");
 const repository = require("./repository");
+const {
+  buildComputedScores,
+  extractRecommendation,
+  extractOverallScore,
+} = require("./summary_all_scores");
 const invitationsRepository = require("../applicant_invitations/repository");
 const masterQuestionsRepository = require("../master_questions/repository");
 const { publishMoveFiles } = require("./file_mover");
@@ -317,6 +322,21 @@ const updateSummaryAll = async (payload, user) => {
     );
   }
 
+  // Rekomendasi akhir dari summary all (sudah memperhitungkan aturan penurunan)
+  // menggantikan rating berbasis skor di summary_rating. Hanya kalau hasilnya
+  // sukses dan JSON-nya punya recommendation yang valid; selain itu dibiarkan.
+  if (
+    data.summary_all &&
+    data.summary_all_status !== "Failed" &&
+    payload.summary_all_status !== "Failed"
+  ) {
+    const recommendation = extractRecommendation(data.summary_all);
+    if (recommendation) data.summary_rating = recommendation;
+    // Skor keseluruhan dari AI (sama dengan computed_scores yang dikirim career)
+    const overallScore = extractOverallScore(data.summary_all);
+    if (overallScore !== null) data.summary_score = overallScore;
+  }
+
   const updated = await repository.updateSummaryAll(
     existingForm.id,
     data,
@@ -325,6 +345,8 @@ const updateSummaryAll = async (payload, user) => {
   return {
     id: updated.id,
     transcription_id: transcriptionId,
+    summary_score: updated.summary_score,
+    summary_rating: updated.summary_rating,
     summary_all: updated.summary_all,
     summary_all_status: updated.summary_all_status,
     summary_all_message: updated.summary_all_message,
@@ -431,8 +453,19 @@ const createSummarizeAll = async (payload, user, token) => {
   // Tanpa instruksi khusus, perilaku lama: hanya jawaban ber-prompt_ai_summary.
   const customInstruction = getSummaryAllInstruction();
   let requestItems;
+  let computedScores = null;
   if (customInstruction) {
     requestItems = sortByStep(resolved.map(describe));
+    // Skor dihitung di kode dari penilaian per jawaban (urut sesuai pertanyaan),
+    // bukan oleh LLM, supaya sama dengan summary_score di tabel.
+    computedScores = buildComputedScores(
+      sortByStep(resolved).map((item) => ({
+        question: describe(item).question,
+        summary_score: item.summary_score,
+        summary_rating: item.summary_rating,
+        summary_dimensions: item.summary_dimensions,
+      })),
+    );
     requestItems.unshift({
       transcription_id: requestItems[0].transcription_id,
       instruction: customInstruction,
@@ -466,6 +499,7 @@ const createSummarizeAll = async (payload, user, token) => {
     id,
     requestItems,
     process.env.SPEECH_TO_TEXT_TOKEN || token,
+    { computedScores },
   );
   if (!result.ok) {
     const httpInfo = result.httpStatus ? ` (HTTP ${result.httpStatus})` : "";

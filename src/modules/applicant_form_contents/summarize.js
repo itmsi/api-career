@@ -69,14 +69,24 @@ const resolveInstructions = async (contents) => {
 
 // Hit API summarize-all untuk beberapa transcription sekaligus.
 // items: [{ transcription_id, instruction }]
-const hitSummarizeAll = async (applicantFormId, items, token) => {
+const hitSummarizeAll = async (
+  applicantFormId,
+  items,
+  token,
+  { computedScores = null } = {},
+) => {
   const startedAt = Date.now();
   console.info(
-    `${LOG_PREFIX} [ALL][START] applicant_form_id=${applicantFormId} POST ${SUMMARIZE_ALL_URL} jumlah=${items.length}`,
+    `${LOG_PREFIX} [ALL][START] applicant_form_id=${applicantFormId} POST ${SUMMARIZE_ALL_URL} jumlah=${items.length} computed_scores=${computedScores ? "ada" : "tidak"}`,
   );
 
+  // Dengan computed_scores body berbentuk { items, computed_scores }; tanpa itu array biasa
+  const body = computedScores
+    ? { items, computed_scores: computedScores }
+    : items;
+
   try {
-    const response = await axios.post(SUMMARIZE_ALL_URL, items, {
+    const response = await axios.post(SUMMARIZE_ALL_URL, body, {
       timeout: REQUEST_TIMEOUT_MS,
       headers: {
         accept: "application/json",
