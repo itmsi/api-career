@@ -238,6 +238,10 @@ const refreshApplicantFormScore = async (applicantFormId, ratingFromScore) => {
       ? null
       : Math.round(Number(row.average) * 100) / 100;
 
+  // Tidak ada skor per jawaban: jangan menimpa nilai yang sudah ada (mis. skor dan
+  // rekomendasi dari summary all) dengan NULL.
+  if (average === null) return null;
+
   await pgCore("applicant_forms")
     .where({ id: applicantFormId })
     .update({
