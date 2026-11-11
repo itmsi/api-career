@@ -157,17 +157,55 @@ const buildComputedScores = (answers = []) => {
   };
 };
 
+// LLM kadang menulis baris baru / tab literal di dalam nilai string JSON, yang membuat
+// JSON.parse gagal. Karakter kontrol di dalam string diubah jadi escape-nya.
+const escapeControlCharsInStrings = (text) => {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (const char of text) {
+    if (!inString) {
+      if (char === '"') inString = true;
+      out += char;
+    } else if (escaped) {
+      escaped = false;
+      out += char;
+    } else if (char === "\\") {
+      escaped = true;
+      out += char;
+    } else if (char === '"') {
+      inString = false;
+      out += char;
+    } else if (char === "\n") {
+      out += "\\n";
+    } else if (char === "\r") {
+      out += "\\r";
+    } else if (char === "\t") {
+      out += "\\t";
+    } else if (char < " ") {
+      out += `\\u${char.charCodeAt(0).toString(16).padStart(4, "0")}`;
+    } else {
+      out += char;
+    }
+  }
+  return out;
+};
+
 const parseSummaryJson = (summaryText) => {
   if (typeof summaryText !== "string") return null;
   const start = summaryText.indexOf("{");
   const end = summaryText.lastIndexOf("}");
   if (start === -1 || end <= start) return null;
-  try {
-    const parsed = JSON.parse(summaryText.slice(start, end + 1));
-    return parsed && typeof parsed === "object" ? parsed : null;
-  } catch {
-    return null;
+  const chunk = summaryText.slice(start, end + 1);
+  for (const candidate of [chunk, escapeControlCharsInStrings(chunk)]) {
+    try {
+      const parsed = JSON.parse(candidate);
+      return parsed && typeof parsed === "object" ? parsed : null;
+    } catch {
+      // coba bentuk berikutnya
+    }
   }
+  return null;
 };
 
 // Rekomendasi akhir dari JSON hasil summary all (field `recommendation`), sudah termasuk
