@@ -337,6 +337,11 @@ const updateSummaryAll = async (payload, user) => {
     if (overallScore !== null) data.summary_score = overallScore;
   }
 
+  console.info(
+    `[SUMMARY_ALL] applicant_form_id=${existingForm.id} status=${data.summary_all_status ?? "-"} ` +
+      `summary_chars=${data.summary_all ? data.summary_all.length : 0} ` +
+      `rating=${data.summary_rating ?? "-"} score=${data.summary_score ?? "-"}`,
+  );
   const updated = await repository.updateSummaryAll(
     existingForm.id,
     data,
