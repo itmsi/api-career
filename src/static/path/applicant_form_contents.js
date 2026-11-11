@@ -130,8 +130,8 @@ const applicantFormContentsPaths = {
     post: {
       tags: ['Applicant Form Contents'],
       summary: 'Update hasil speech to text',
-      description: 'Update speech_text, status_speech_text, message_speech_text, transcription_id, summary, summary_update, status_summary dan message_summary untuk content yang file_link_audio-nya sama. Field selain file_link_audio opsional; yang tidak dikirim tidak diubah. status_speech_text & status_summary bernilai Pending, Success, atau Failed. message_speech_text & message_summary dipotong maksimal 2000 karakter.',
-      security: [{ bearerAuth: [] }],
+      description: 'Update speech_text, status_speech_text, message_speech_text, transcription_id, summary, summary_update, status_summary dan message_summary untuk content yang file_link_audio-nya sama. Field selain file_link_audio opsional; yang tidak dikirim tidak diubah. status_speech_text & status_summary bernilai Pending, Success, atau Failed. message_speech_text & message_summary dipotong maksimal 2000 karakter. Authorization (Bearer token) bersifat opsional: boleh dikirim, boleh tidak. Kalau dikirim, dipakai untuk mengisi updated_by dan sebagai fallback token API AI (kalau SPEECH_TO_TEXT_TOKEN tidak diisi); kalau tidak dikirim, updated_by tidak diubah (tetap nilai sebelumnya).',
+      security: [{}, { bearerAuth: [] }],
       requestBody: {
         required: true,
         content: {
@@ -160,7 +160,6 @@ const applicantFormContentsPaths = {
           }
         },
         400: errorResponse('Validation error'),
-        401: errorResponse('Unauthorized'),
         404: errorResponse('Content dengan file_link_audio tsb tidak ditemukan')
       }
     }

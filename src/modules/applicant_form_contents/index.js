@@ -10,7 +10,7 @@ const {
   summarizeValidation,
   getListValidation
 } = require('./validation')
-const { verifyToken } = require('../../middlewares')
+const { verifyToken, optionalToken } = require('../../middlewares')
 const { validateMiddleware } = require('../../middlewares/validation')
 const { handleFileUpload } = require('./upload')
 
@@ -33,7 +33,7 @@ router.post(
 
 router.post(
   '/update-stt',
-  verifyToken,
+  optionalToken,
   updateSpeechTextValidation,
   validateMiddleware,
   controller.updateSpeechText

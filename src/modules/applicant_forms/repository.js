@@ -516,7 +516,7 @@ const updateSummaryAll = async (id, data = {}, updatedBy) => {
     .where({ id, deleted_at: null })
     .update({
       ...data,
-      updated_by: updatedBy || null,
+      ...(updatedBy ? { updated_by: updatedBy } : {}),
       updated_at: pgCore.fn.now(),
     })
     .returning([
@@ -546,7 +546,7 @@ const claimSummaryAll = async (id, updatedBy) => {
     .update({
       summary_all_status: "Pending",
       summary_all_message: "Proses created summary all on AI (otomatis)",
-      updated_by: updatedBy || null,
+      ...(updatedBy ? { updated_by: updatedBy } : {}),
       updated_at: pgCore.fn.now(),
     })
     .returning("id");

@@ -445,7 +445,11 @@ const runAutoPipeline = (payload, rows, user, token) => {
 // Callback hasil speech to text: update content berdasarkan file_link_audio
 const updateSpeechText = async (payload, user, token) => {
   const fileLinkAudio = normalizeOptionalString(payload.file_link_audio);
-  const data = { updated_by: getRequesterId(user) };
+  const data = {};
+  // Token opsional: updated_by hanya diubah kalau requester diketahui,
+  // supaya nilai sebelumnya tidak tertimpa null
+  const requesterId = getRequesterId(user);
+  if (requesterId) data.updated_by = requesterId;
 
   if (payload.speech_text !== undefined) {
     data.speech_text = payload.speech_text ?? null;

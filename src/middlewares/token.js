@@ -26,6 +26,20 @@ const verifyToken = async (req, res, next) => {
   }
 }
 
+// Token opsional: kalau Authorization dikirim, decode & simpan ke req.user;
+// kalau tidak dikirim (atau tidak bisa di-decode), request tetap lanjut tanpa req.user.
+const optionalToken = async (req, res, next) => {
+  const authHeader = req?.headers?.authorization
+  if (!authHeader) return next()
+  try {
+    const token = authHeader.split(' ')[1]
+    if (token) req.user = jwtDecode(token)
+  } catch (error) {
+    req.user = undefined
+  }
+  next()
+}
+
 const verifyTokenCustomer = async (req, res, next) => {
   const response = (message) => res.status(201).send({
     status: false,
@@ -92,6 +106,7 @@ const verifyTokenAuction = async (req, res, next) => {
 
 module.exports = {
   verifyToken,
+  optionalToken,
   verifyTokenCustomer,
   verifyTokenClient,
   verifyTokenAuction
