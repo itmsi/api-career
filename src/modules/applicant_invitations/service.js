@@ -1,8 +1,8 @@
-const crypto = require('crypto')
-const path = require('path')
-const jwt = require('jsonwebtoken')
-const repository = require('./repository')
-const Mail = require('../../utils/mail')
+const crypto = require("crypto");
+const path = require("path");
+const jwt = require("jsonwebtoken");
+const repository = require("./repository");
+const Mail = require("../../utils/mail");
 
 /**
  * Service Layer - Business Logic
@@ -11,48 +11,61 @@ const Mail = require('../../utils/mail')
  * dan verifikasi token akses halaman applicant form.
  */
 
-const TOKEN_SECRET = process.env.APPLICANT_FORM_TOKEN_SECRET || process.env.JWT_SECRET
-const TOKEN_EXPIRES_IN = process.env.APPLICANT_FORM_TOKEN_EXPIRES_IN || '3d'
-const APPLICANT_FORM_URL = process.env.APPLICANT_FORM_URL || 'https://career.motorsights.com/applicant-form'
-const EMAIL_ENABLED = process.env.EMAIL_ENABLED === 'true'
+const TOKEN_SECRET =
+  process.env.APPLICANT_FORM_TOKEN_SECRET || process.env.JWT_SECRET;
+const TOKEN_EXPIRES_IN = process.env.APPLICANT_FORM_TOKEN_EXPIRES_IN || "3d";
+const APPLICANT_FORM_URL =
+  process.env.APPLICANT_FORM_URL ||
+  "https://career.motorsights.com/applicant-form";
+const EMAIL_ENABLED = process.env.EMAIL_ENABLED === "true";
 // Email undangan bersifat no-reply. Isi dengan inbox HR yang aktif (atau alamat
 // forwarding, mis. Cloudflare Email Routing) supaya pelamar yang tetap menekan
 // "Reply" tidak kena bounce. Kosongkan kalau belum ada alamat yang bisa menerima email.
-const RECRUITMENT_REPLY_TO = process.env.RECRUITMENT_REPLY_TO || null
+const RECRUITMENT_REPLY_TO = process.env.RECRUITMENT_REPLY_TO || null;
 
 // Logo email. Kalau EMAIL_LOGO_URL diisi (url publik, mis. hasil serve
 // public/images lewat gateway), logo diambil dari url tsb: cara ini paling
 // konsisten di Gmail. Kalau kosong, fallback embed file lokal sebagai inline
 // attachment (cid) supaya tetap jalan di environment tanpa url publik.
-const EMAIL_LOGO_URL = process.env.EMAIL_LOGO_URL || null
-const LOGO_CID = 'motorsights-logo'
-const LOGO_PATH = path.join(__dirname, '../../../public/images/motor-sights-international.png')
+const EMAIL_LOGO_URL = process.env.EMAIL_LOGO_URL || null;
+const LOGO_CID = "motorsights-logo";
+const LOGO_PATH = path.join(
+  __dirname,
+  "../../../public/images/motor-sights-international.png",
+);
 const LOGO_ATTACHMENTS = EMAIL_LOGO_URL
   ? []
-  : [{ filename: 'motor-sights-international.png', path: LOGO_PATH, cid: LOGO_CID }]
-const LOGO_SRC = EMAIL_LOGO_URL || `cid:${LOGO_CID}`
-const COMPANY_ADDRESS = process.env.COMPANY_ADDRESS ||
-  'Head Office, Jl. Cakung Cilincing Raya No.KM 35 Kav 532, RT.9/RW.8, Cakung Bar., Kec. Cakung, Kota Jakarta Timur, Daerah Khusus Ibukota Jakarta 13910'
-const COMPANY_PHONE = process.env.COMPANY_PHONE || '(021) 80603068'
+  : [
+      {
+        filename: "motor-sights-international.png",
+        path: LOGO_PATH,
+        cid: LOGO_CID,
+      },
+    ];
+const LOGO_SRC = EMAIL_LOGO_URL || `cid:${LOGO_CID}`;
+const COMPANY_ADDRESS =
+  process.env.COMPANY_ADDRESS ||
+  "Head Office, Jl. Cakung Cilincing Raya No.KM 35 Kav 532, RT.9/RW.8, Cakung Bar., Kec. Cakung, Kota Jakarta Timur, Daerah Khusus Ibukota Jakarta 13910";
+const COMPANY_PHONE = process.env.COMPANY_PHONE || "(021) 80603068";
 
 const getRequesterId = (user) => {
-  if (!user) return null
-  return user.employee_id || user.user_id || user.users_id || user.sub || null
-}
+  if (!user) return null;
+  return user.employee_id || user.user_id || user.users_id || user.sub || null;
+};
 
 const normalizeOptionalString = (value) => {
-  if (value === undefined || value === null) return null
-  if (typeof value !== 'string') return value
-  const trimmed = value.trim()
-  if (trimmed === '' || trimmed === 'null' || trimmed === 'nan') return null
-  return trimmed
-}
+  if (value === undefined || value === null) return null;
+  if (typeof value !== "string") return value;
+  const trimmed = value.trim();
+  if (trimmed === "" || trimmed === "null" || trimmed === "nan") return null;
+  return trimmed;
+};
 
 const buildPayload = (payload = {}) => ({
   full_name: normalizeOptionalString(payload.full_name),
   email: normalizeOptionalString(payload.email),
-  no_mobile: normalizeOptionalString(payload.no_mobile)
-})
+  no_mobile: normalizeOptionalString(payload.no_mobile),
+});
 
 /**
  * Generate signed JWT access token untuk satu invitation.
@@ -60,103 +73,136 @@ const buildPayload = (payload = {}) => ({
  * supaya token tetap ringkas dan tidak membocorkan data jika didecode manual.
  */
 const generateAccessToken = (invitationId) => {
-  const jti = crypto.randomUUID()
+  const jti = crypto.randomUUID();
   const token = jwt.sign(
     {
       sub: invitationId,
       jti,
-      type: 'applicant_form_invitation'
+      type: "applicant_form_invitation",
     },
     TOKEN_SECRET,
-    { algorithm: 'HS256', expiresIn: TOKEN_EXPIRES_IN }
-  )
+    { algorithm: "HS256", expiresIn: TOKEN_EXPIRES_IN },
+  );
 
-  const { exp } = jwt.decode(token)
-  const expiresAt = new Date(exp * 1000)
+  const { exp } = jwt.decode(token);
+  const expiresAt = new Date(exp * 1000);
 
-  return { token, expiresAt }
-}
+  return { token, expiresAt };
+};
 
-const buildApplicantFormUrl = (token) => `${APPLICANT_FORM_URL}/${token}`
+// Label durasi masa berlaku token untuk email, mis. '2x24 jam' / '14x24 jam'.
+// Dihitung dari token undangan itu sendiri (exp - iat), bukan dari env saat ini,
+// supaya undangan lama yang di-resend setelah APPLICANT_FORM_TOKEN_EXPIRES_IN
+// diubah tetap menampilkan durasi yang sesuai dengan tanggal kedaluwarsanya.
+// Durasi kelipatan hari -> 'Nx24 jam', kelipatan jam -> 'N jam', selain itu null.
+const buildExpiresDurationLabel = (token) => {
+  const { iat, exp } = jwt.decode(token) || {};
+  if (!iat || !exp || exp <= iat) return null;
+  const hours = (exp - iat) / 3600;
+  if (hours % 24 === 0) return `${hours / 24}x24 jam`;
+  if (Number.isInteger(hours)) return `${hours} jam`;
+  return null;
+};
 
-const getFirstName = (fullName) => String(fullName || '').trim().split(/\s+/)[0] || 'Pelamar'
+const buildApplicantFormUrl = (token) => `${APPLICANT_FORM_URL}/${token}`;
+
+const getFirstName = (fullName) =>
+  String(fullName || "")
+    .trim()
+    .split(/\s+/)[0] || "Pelamar";
 
 // (021) 80603068 -> +622180603068, untuk link tel: di footer
 const toTelLink = (phone) => {
-  const digits = String(phone || '').replace(/\D/g, '')
-  return digits.startsWith('0') ? `+62${digits.slice(1)}` : digits
-}
+  const digits = String(phone || "").replace(/\D/g, "");
+  return digits.startsWith("0") ? `+62${digits.slice(1)}` : digits;
+};
 
 // Versi plain text dari mail/applicant_invitation.edge. Dikirim bersamaan dengan
 // versi HTML (multipart/alternative) karena email yang hanya berisi HTML lebih
 // sering ditandai spam. Di plain text url terpaksa ditampilkan utuh.
-const buildInvitationText = ({ firstName, applicantFormUrl, expiresAt }) => [
-  `Halo ${firstName},`,
-  '',
-  'Terima kasih telah melamar di PT Motorsights. Lamaran Anda sudah kami terima. Sebagai langkah berikutnya, mohon lengkapi formulir data pelamar melalui portal karier resmi kami:',
-  '',
-  'Lengkapi Data Pelamar:',
+const buildInvitationText = ({
+  firstName,
   applicantFormUrl,
-  '',
-  `Formulir dapat diisi sampai ${expiresAt}. Anda bisa menyimpan dan melanjutkan pengisian kapan saja sebelum mengirimkannya.`,
-  '',
-  `Email ini dikirim otomatis dan tidak dapat dibalas. Untuk pertanyaan, hubungi kami di ${COMPANY_PHONE}.`,
-  '',
-  'Salam,',
-  'Tim Rekrutmen PT Motorsights',
-  '',
-  '--',
-  'PT Motorsights',
-  COMPANY_ADDRESS,
-  `Telp. ${COMPANY_PHONE} · motorsights.com`,
-  '',
-  'Motorsights tidak pernah memungut biaya apa pun dalam proses rekrutmen.'
-].join('\n')
+  expiresAt,
+  expiresDuration,
+}) =>
+  [
+    `Halo ${firstName},`,
+    "",
+    "Terima kasih telah melamar di PT Motorsights. Lamaran Anda sudah kami terima. Sebagai langkah berikutnya, mohon lengkapi formulir data pelamar melalui portal karier resmi kami:",
+    "",
+    "Lengkapi Data Pelamar:",
+    applicantFormUrl,
+    "",
+    `Formulir dapat diisi sampai ${expiresAt}${expiresDuration ? ` (${expiresDuration})` : ""}. Anda bisa menyimpan dan melanjutkan pengisian kapan saja sebelum mengirimkannya.`,
+    "",
+    `Email ini dikirim otomatis dan tidak dapat dibalas. Untuk pertanyaan, hubungi kami di ${COMPANY_PHONE}.`,
+    "",
+    "Salam,",
+    "Tim Rekrutmen PT Motorsights",
+    "",
+    "--",
+    "PT Motorsights",
+    COMPANY_ADDRESS,
+    `Telp. ${COMPANY_PHONE} · motorsights.com`,
+    "",
+    "Motorsights tidak pernah memungut biaya apa pun dalam proses rekrutmen.",
+  ].join("\n");
 
 /**
  * HR input nama, email, no_mobile -> generate invitation + token
  */
 const createInvitation = async (payload, user) => {
-  const data = buildPayload(payload)
+  const data = buildPayload(payload);
 
   // Email sudah pernah diundang:
   // - undangan sudah diselesaikan (completed) -> tolak, tidak bisa diundang ulang
   // - token undangan lama belum expired -> tolak
   // - token sudah expired -> email undangan lama di-rename jadi
   //   <email>-expiret-<n> (di repository.create) lalu undangan baru dibuat
-  const invitations = await repository.findByEmail(data.email)
+  const invitations = await repository.findByEmail(data.email);
   if (invitations.some((invitation) => invitation.is_completed)) {
-    throw { message: 'Email ini sudah menyelesaikan undangan sebelumnya dan tidak bisa diundang ulang', statusCode: 409 }
+    throw {
+      message:
+        "Email ini sudah menyelesaikan undangan sebelumnya dan tidak bisa diundang ulang",
+      statusCode: 409,
+    };
   }
 
-  const existing = invitations[0] || null
+  const existing = invitations[0] || null;
   if (existing && new Date(existing.token_expires_at) > new Date()) {
-    throw { message: 'Undangan aktif untuk email ini sudah ada dan belum kedaluwarsa', statusCode: 409 }
+    throw {
+      message: "Undangan aktif untuk email ini sudah ada dan belum kedaluwarsa",
+      statusCode: 409,
+    };
   }
 
-  const invitationId = crypto.randomUUID()
-  const { token, expiresAt } = generateAccessToken(invitationId)
-  const authorId = getRequesterId(user)
+  const invitationId = crypto.randomUUID();
+  const { token, expiresAt } = generateAccessToken(invitationId);
+  const authorId = getRequesterId(user);
 
-  const created = await repository.create({
-    id: invitationId,
-    ...data,
-    token,
-    token_expires_at: expiresAt,
-    created_by: authorId
-  }, existing)
+  const created = await repository.create(
+    {
+      id: invitationId,
+      ...data,
+      token,
+      token_expires_at: expiresAt,
+      created_by: authorId,
+    },
+    existing,
+  );
 
   return {
     ...created,
-    applicant_form_url: buildApplicantFormUrl(token)
-  }
-}
+    applicant_form_url: buildApplicantFormUrl(token),
+  };
+};
 
 const SEND_EMAIL_STATUS = {
-  PROCESS: 'Process',
-  SUCCESS: 'Success',
-  FAILED: 'Failed'
-}
+  PROCESS: "Process",
+  SUCCESS: "Success",
+  FAILED: "Failed",
+};
 
 /**
  * Simpan status pengiriman email ke invitation. response_send_email berisi
@@ -166,13 +212,13 @@ const SEND_EMAIL_STATUS = {
 const updateSendEmailStatus = async (id, status, message, provider = null) => {
   const response = JSON.stringify({
     system: { message, at: new Date().toISOString() },
-    provider
-  })
+    provider,
+  });
 
-  await repository.updateSendEmailStatus(id, status, response)
+  await repository.updateSendEmailStatus(id, status, response);
 
-  return { status_send_email: status, response_send_email: response }
-}
+  return { status_send_email: status, response_send_email: response };
+};
 
 /**
  * Kirim email undangan berisi nama, email, no_mobile, dan url + token.
@@ -180,40 +226,50 @@ const updateSendEmailStatus = async (id, status, message, provider = null) => {
  * beserta response_send_email.
  */
 const sendInvitationEmail = async (id) => {
-  const invitation = await repository.findById(id)
+  const invitation = await repository.findById(id);
 
   if (!invitation) {
-    throw { message: 'Undangan tidak ditemukan', statusCode: 404 }
+    throw { message: "Undangan tidak ditemukan", statusCode: 404 };
   }
 
-  const applicantFormUrl = buildApplicantFormUrl(invitation.token)
+  const applicantFormUrl = buildApplicantFormUrl(invitation.token);
 
-  await updateSendEmailStatus(id, SEND_EMAIL_STATUS.PROCESS, 'Email undangan sedang dikirim')
+  await updateSendEmailStatus(
+    id,
+    SEND_EMAIL_STATUS.PROCESS,
+    "Email undangan sedang dikirim",
+  );
 
   if (!EMAIL_ENABLED) {
     const sendStatus = await updateSendEmailStatus(
       id,
       SEND_EMAIL_STATUS.FAILED,
-      'Email tidak dikirim karena pengiriman email dinonaktifkan (EMAIL_ENABLED bukan true)'
-    )
-    return { invitation, applicant_form_url: applicantFormUrl, email_sent: false, ...sendStatus }
+      "Email tidak dikirim karena pengiriman email dinonaktifkan (EMAIL_ENABLED bukan true)",
+    );
+    return {
+      invitation,
+      applicant_form_url: applicantFormUrl,
+      email_sent: false,
+      ...sendStatus,
+    };
   }
 
-  let result
+  let result;
   try {
-    const expiresAtFormatted = new Intl.DateTimeFormat('id-ID', {
-      timeZone: 'Asia/Jakarta',
-      dateStyle: 'long'
-    }).format(new Date(invitation.token_expires_at))
+    const expiresAtFormatted = new Intl.DateTimeFormat("id-ID", {
+      timeZone: "Asia/Jakarta",
+      dateStyle: "long",
+    }).format(new Date(invitation.token_expires_at));
 
-    const firstName = getFirstName(invitation.full_name)
+    const firstName = getFirstName(invitation.full_name);
+    const expiresDuration = buildExpiresDurationLabel(invitation.token);
 
     result = await Mail.init()
       .to(invitation.email)
       .subject(`${firstName}, lengkapi data pelamar — PT Motorsights`)
       .additional(RECRUITMENT_REPLY_TO ? { replyTo: RECRUITMENT_REPLY_TO } : {})
       .attachments(LOGO_ATTACHMENTS)
-      .html('mail/applicant_invitation', {
+      .html("mail/applicant_invitation", {
         data: {
           first_name: firstName,
           full_name: invitation.full_name,
@@ -221,25 +277,33 @@ const sendInvitationEmail = async (id) => {
           no_mobile: invitation.no_mobile,
           applicant_form_url: applicantFormUrl,
           expires_at: expiresAtFormatted,
+          expires_duration: expiresDuration,
           company_address: COMPANY_ADDRESS,
           company_phone: COMPANY_PHONE,
           company_phone_tel: toTelLink(COMPANY_PHONE),
-          logo_src: LOGO_SRC
-        }
+          logo_src: LOGO_SRC,
+        },
       })
-      .text(buildInvitationText({
-        firstName,
-        applicantFormUrl,
-        expiresAt: expiresAtFormatted
-      }))
-      .send()
+      .text(
+        buildInvitationText({
+          firstName,
+          applicantFormUrl,
+          expiresAt: expiresAtFormatted,
+          expiresDuration,
+        }),
+      )
+      .send();
   } catch (error) {
     const sendStatus = await updateSendEmailStatus(
       id,
       SEND_EMAIL_STATUS.FAILED,
-      `Terjadi error di sistem saat mengirim email: ${error?.message || error}`
-    )
-    throw { message: `Gagal mengirim email: ${error?.message || error}`, statusCode: 500, ...sendStatus }
+      `Terjadi error di sistem saat mengirim email: ${error?.message || error}`,
+    );
+    throw {
+      message: `Gagal mengirim email: ${error?.message || error}`,
+      statusCode: 500,
+      ...sendStatus,
+    };
   }
 
   if (!result.status) {
@@ -247,27 +311,36 @@ const sendInvitationEmail = async (id) => {
       id,
       SEND_EMAIL_STATUS.FAILED,
       `Gagal mengirim email: ${result.message}`,
-      result.error || null
-    )
-    throw { message: `Gagal mengirim email: ${result.message}`, statusCode: 502, ...sendStatus }
+      result.error || null,
+    );
+    throw {
+      message: `Gagal mengirim email: ${result.message}`,
+      statusCode: 502,
+      ...sendStatus,
+    };
   }
 
-  const info = result.data || {}
+  const info = result.data || {};
   const sendStatus = await updateSendEmailStatus(
     id,
     SEND_EMAIL_STATUS.SUCCESS,
-    'Email undangan berhasil dikirim',
+    "Email undangan berhasil dikirim",
     {
       messageId: info.messageId || null,
       response: info.response || null,
       accepted: info.accepted || [],
       rejected: info.rejected || [],
-      envelope: info.envelope || null
-    }
-  )
+      envelope: info.envelope || null,
+    },
+  );
 
-  return { invitation, applicant_form_url: applicantFormUrl, email_sent: true, ...sendStatus }
-}
+  return {
+    invitation,
+    applicant_form_url: applicantFormUrl,
+    email_sent: true,
+    ...sendStatus,
+  };
+};
 
 /**
  * Verifikasi token dari url applicant-form:
@@ -276,42 +349,58 @@ const sendInvitationEmail = async (id) => {
  * - Form belum pernah diisi (is_completed)
  */
 const verifyAccessToken = async (token) => {
-  let decoded
+  let decoded;
 
   try {
-    decoded = jwt.verify(token, TOKEN_SECRET, { algorithms: ['HS256'] })
+    decoded = jwt.verify(token, TOKEN_SECRET, { algorithms: ["HS256"] });
   } catch (error) {
-    if (error.name === 'TokenExpiredError') {
-      throw { message: 'Token sudah expired', statusCode: 410, reason: 'expired' }
+    if (error.name === "TokenExpiredError") {
+      throw {
+        message: "Token sudah expired",
+        statusCode: 410,
+        reason: "expired",
+      };
     }
-    throw { message: 'Token tidak valid', statusCode: 401, reason: 'invalid' }
+    throw { message: "Token tidak valid", statusCode: 401, reason: "invalid" };
   }
 
-  if (decoded.type !== 'applicant_form_invitation') {
-    throw { message: 'Token tidak valid', statusCode: 401, reason: 'invalid' }
+  if (decoded.type !== "applicant_form_invitation") {
+    throw { message: "Token tidak valid", statusCode: 401, reason: "invalid" };
   }
 
-  const invitation = await repository.findByToken(token)
+  const invitation = await repository.findByToken(token);
 
   if (!invitation) {
-    throw { message: 'Token tidak valid atau sudah dicabut', statusCode: 401, reason: 'invalid' }
+    throw {
+      message: "Token tidak valid atau sudah dicabut",
+      statusCode: 401,
+      reason: "invalid",
+    };
   }
 
   if (invitation.is_completed) {
-    throw { message: 'Form ini sudah pernah diisi dan tidak dapat diakses kembali', statusCode: 410, reason: 'completed' }
+    throw {
+      message: "Form ini sudah pernah diisi dan tidak dapat diakses kembali",
+      statusCode: 410,
+      reason: "completed",
+    };
   }
 
   if (new Date(invitation.token_expires_at).getTime() < Date.now()) {
-    throw { message: 'Token sudah expired', statusCode: 410, reason: 'expired' }
+    throw {
+      message: "Token sudah expired",
+      statusCode: 410,
+      reason: "expired",
+    };
   }
 
   return {
     id: invitation.id,
     full_name: invitation.full_name,
     email: invitation.email,
-    no_mobile: invitation.no_mobile
-  }
-}
+    no_mobile: invitation.no_mobile,
+  };
+};
 
 /**
  * Dipakai oleh GET /verify/:token. Selain validasi token, ikut mengembalikan
@@ -321,91 +410,100 @@ const verifyAccessToken = async (token) => {
  * middleware di setiap request applicant-form.
  */
 const verifyAccessTokenWithUploads = async (token) => {
-  const invitation = await verifyAccessToken(token)
+  const invitation = await verifyAccessToken(token);
 
   const [files, contents, signature] = await Promise.all([
     repository.findUploadedFilesByCreator(invitation.id),
     repository.findUploadedContentsByCreator(invitation.id),
-    repository.findLatestSignatureByCreator(invitation.id)
-  ])
+    repository.findLatestSignatureByCreator(invitation.id),
+  ]);
 
   return {
     ...invitation,
     applicant_form_files: files,
     applicant_form_contents: contents,
     signature_link: signature?.signature_link ?? null,
-    signature_date: signature?.signature_date ?? null
-  }
-}
+    signature_date: signature?.signature_date ?? null,
+  };
+};
 
 /**
  * Dipanggil setelah applicant berhasil submit applicant_forms,
  * supaya token yang sama tidak bisa dipakai ulang.
  */
 const completeInvitation = async (token, applicantFormId) => {
-  const invitation = await repository.findByToken(token)
+  const invitation = await repository.findByToken(token);
 
   if (!invitation) {
-    throw { message: 'Undangan tidak ditemukan', statusCode: 404 }
+    throw { message: "Undangan tidak ditemukan", statusCode: 404 };
   }
 
-  return await repository.markCompleted(invitation.id, applicantFormId)
-}
+  return await repository.markCompleted(invitation.id, applicantFormId);
+};
 
 const UPDATABLE_COLUMNS = [
-  'full_name',
-  'email',
-  'no_mobile',
-  'status_send_email',
-  'response_send_email',
-  'is_completed',
-  'applicant_form_id'
-]
+  "full_name",
+  "email",
+  "no_mobile",
+  "status_send_email",
+  "response_send_email",
+  "is_completed",
+  "applicant_form_id",
+];
 
 /**
  * Update data invitation. Hanya kolom yang dikirim di payload yang di-update,
  * kolom yang tidak dikirim dibiarkan apa adanya.
  */
 const updateInvitation = async (id, payload = {}, user) => {
-  const existing = await repository.findById(id)
+  const existing = await repository.findById(id);
 
   if (!existing) {
-    throw { message: 'Undangan tidak ditemukan', statusCode: 404 }
+    throw { message: "Undangan tidak ditemukan", statusCode: 404 };
   }
 
-  const data = {}
+  const data = {};
   for (const column of UPDATABLE_COLUMNS) {
-    if (!Object.prototype.hasOwnProperty.call(payload, column)) continue
-    data[column] = payload[column]
+    if (!Object.prototype.hasOwnProperty.call(payload, column)) continue;
+    data[column] = payload[column];
   }
 
   if (Object.keys(data).length === 0) {
-    throw { message: 'Tidak ada data yang di-update', statusCode: 400 }
+    throw { message: "Tidak ada data yang di-update", statusCode: 400 };
   }
 
-  if ('full_name' in data) data.full_name = normalizeOptionalString(data.full_name)
-  if ('email' in data) data.email = normalizeOptionalString(data.email)
-  if ('no_mobile' in data) data.no_mobile = normalizeOptionalString(data.no_mobile)
-  if ('status_send_email' in data) data.status_send_email = normalizeOptionalString(data.status_send_email)
-  if ('applicant_form_id' in data) data.applicant_form_id = normalizeOptionalString(data.applicant_form_id)
+  if ("full_name" in data)
+    data.full_name = normalizeOptionalString(data.full_name);
+  if ("email" in data) data.email = normalizeOptionalString(data.email);
+  if ("no_mobile" in data)
+    data.no_mobile = normalizeOptionalString(data.no_mobile);
+  if ("status_send_email" in data)
+    data.status_send_email = normalizeOptionalString(data.status_send_email);
+  if ("applicant_form_id" in data)
+    data.applicant_form_id = normalizeOptionalString(data.applicant_form_id);
 
-  if ('response_send_email' in data && data.response_send_email !== null && typeof data.response_send_email === 'object') {
-    data.response_send_email = JSON.stringify(data.response_send_email)
+  if (
+    "response_send_email" in data &&
+    data.response_send_email !== null &&
+    typeof data.response_send_email === "object"
+  ) {
+    data.response_send_email = JSON.stringify(data.response_send_email);
   }
 
-  if ('is_completed' in data) {
-    data.is_completed = data.is_completed === true || data.is_completed === 'true'
-    data.completed_at = data.is_completed ? new Date() : null
+  if ("is_completed" in data) {
+    data.is_completed =
+      data.is_completed === true || data.is_completed === "true";
+    data.completed_at = data.is_completed ? new Date() : null;
   }
 
-  data.updated_by = getRequesterId(user)
+  data.updated_by = getRequesterId(user);
 
-  return await repository.update(id, data)
-}
+  return await repository.update(id, data);
+};
 
 const getInvitations = async (params) => {
-  return await repository.findAll(params)
-}
+  return await repository.findAll(params);
+};
 
 module.exports = {
   createInvitation,
@@ -414,5 +512,5 @@ module.exports = {
   verifyAccessToken,
   verifyAccessTokenWithUploads,
   completeInvitation,
-  getInvitations
-}
+  getInvitations,
+};
