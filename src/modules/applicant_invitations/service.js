@@ -90,17 +90,18 @@ const generateAccessToken = (invitationId) => {
   return { token, expiresAt };
 };
 
-// Label durasi masa berlaku token untuk email, mis. '2x24 jam' / '14x24 jam'.
+// Label durasi masa berlaku token untuk email, mis. 'dalam waktu 2 × 24 jam'.
 // Dihitung dari token undangan itu sendiri (exp - iat), bukan dari env saat ini,
 // supaya undangan lama yang di-resend setelah APPLICANT_FORM_TOKEN_EXPIRES_IN
 // diubah tetap menampilkan durasi yang sesuai dengan tanggal kedaluwarsanya.
-// Durasi kelipatan hari -> 'Nx24 jam', kelipatan jam -> 'N jam', selain itu null.
+// Durasi kelipatan hari -> 'dalam waktu N × 24 jam', kelipatan jam ->
+// 'dalam waktu N jam', selain itu null.
 const buildExpiresDurationLabel = (token) => {
   const { iat, exp } = jwt.decode(token) || {};
   if (!iat || !exp || exp <= iat) return null;
   const hours = (exp - iat) / 3600;
-  if (hours % 24 === 0) return `${hours / 24}x24 jam`;
-  if (Number.isInteger(hours)) return `${hours} jam`;
+  if (hours % 24 === 0) return `dalam waktu ${hours / 24} × 24 jam`;
+  if (Number.isInteger(hours)) return `dalam waktu ${hours} jam`;
   return null;
 };
 
@@ -134,7 +135,7 @@ const buildInvitationText = ({
     "Lengkapi Data Pelamar:",
     applicantFormUrl,
     "",
-    `Formulir dapat diisi sampai ${expiresAt}${expiresDuration ? ` (${expiresDuration})` : ""}. Anda bisa menyimpan dan melanjutkan pengisian kapan saja sebelum mengirimkannya.`,
+    `Formulir dapat diisi hingga ${expiresAt}${expiresDuration ? ` (${expiresDuration})` : ""}. Anda bisa menyimpan dan melanjutkan pengisian kapan saja sebelum mengirimkannya.`,
     "",
     `Email ini dikirim otomatis dan tidak dapat dibalas. Untuk pertanyaan, hubungi kami di ${COMPANY_PHONE}.`,
     "",
